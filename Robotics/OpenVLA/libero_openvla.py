@@ -3,6 +3,13 @@ from libero.libero import benchmark, get_libero_path
 from libero.libero.envs import OffScreenRenderEnv
 import imageio
 
+# import sys
+# sys.path.append('../')
+# from Robotics.OpenVLA.openvla import OpenVLA
+from openvla import OpenVLA
+
+print("Setting up Libero...")
+
 benchmark_dict = benchmark.get_benchmark_dict()
 # Note that you need to download the right datasets via
 # python benchmark_scripts/download_libero_datasets.py --datasets DATASET --use-huggingface
@@ -17,12 +24,16 @@ task = task_suite.get_task(task_id)
 task_name = task.name
 task_description = task.language
 task_bddl_file = os.path.join(get_libero_path("bddl_files"), task.problem_folder, task.bddl_file)
-print(f"[info] retrieving task {task_id} from suite {task_suite_name}, the " + \
+
+print("Libero initialized!")
+
+print(f"Retrieving task {task_id} from suite {task_suite_name}, the " + \
       f"language instruction is {task_description}, and the bddl file is {task_bddl_file}")
 
+print("Setting up environment...")
+
 # Init environment
-# Note that pixel resolution affects: output video size, probably other things
-pixel_resolution = 512
+pixel_resolution = 128
 env_args = {
     "bddl_file_name": task_bddl_file,
     "camera_heights": pixel_resolution,
@@ -34,7 +45,7 @@ env.reset()
 # For benchmarking, Libero fixes the set of initial states
 init_states = task_suite.get_task_init_states(task_id)
 init_state_id = 0
-env.set_init_state(init_states[init_state_id])
+obs = env.set_init_state(init_states[init_state_id])
 
 def get_libero_image(obs):
     img = obs["agentview_image"]
@@ -42,12 +53,29 @@ def get_libero_image(obs):
     img = img[::-1, ::-1]
     return img
 
-dummy_action = [0.] * 7
+print("Environment initialized!")
+
+model = OpenVLA()
+
+### params
+# prompt = "put the milk in the trash"
+prompt = "pick up the alphabet soup and place it in the basket"
+unnorm_key = task_suite_name
+###
+
 replay_images = []
 for step in range(100):
-    obs, reward, done, info = env.step(dummy_action)
-    img = get_libero_image(obs)
-    replay_images.append(img)
+    libero_img = get_libero_image(obs)
+    
+    observation, libero_img = model.process_libero_observation(libero_img, obs)
+            
+    action = model.get_action(observation, prompt, unnorm_key)
+    
+    obs, reward, done, info = env.step(action)
+    
+    print(f"Processed action! Step #: {step}")
+    
+    replay_images.append(libero_img)
 env.close()
 
 video_dir = "outputs/videos"
