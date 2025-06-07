@@ -34,8 +34,18 @@ print(f"Retrieving task {task_id} from suite {task_suite_name}, the " + \
 
 print("Setting up environment...")
 
+
+### params
+# prompt = "put the milk in the trash"
+prompt = "pick up the alphabet soup and place it in the basket"
+unnorm_key = task_suite_name
+
+# Didn't notice a difference in latency between 128, 512
+# pixel_resolution = 128
+pixel_resolution = 512
+###
+
 # Init environment
-pixel_resolution = 128
 env_args = {
     "bddl_file_name": task_bddl_file,
     "camera_heights": pixel_resolution,
@@ -58,12 +68,6 @@ def get_libero_image(obs):
 print("Environment initialized!")
 
 model = OpenVLA()
-
-### params
-# prompt = "put the milk in the trash"
-prompt = "pick up the alphabet soup and place it in the basket"
-unnorm_key = task_suite_name
-###
 
 def normalize_gripper_action(action, binarize=True):
     """
