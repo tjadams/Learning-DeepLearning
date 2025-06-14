@@ -5,11 +5,9 @@ from libero.libero.envs import OffScreenRenderEnv
 import imageio
 import numpy as np
 
-# import sys
-# sys.path.append('../')
-# from Robotics.OpenVLA.openvla import OpenVLA
-from openvla import OpenVLA
+from shared.openvla import OpenVLA
 
+# def init_libero():
 print("Setting up Libero...")
 
 benchmark_dict = benchmark.get_benchmark_dict()
@@ -30,10 +28,9 @@ task_bddl_file = os.path.join(get_libero_path("bddl_files"), task.problem_folder
 print("Libero initialized!")
 
 print(f"Retrieving task {task_id} from suite {task_suite_name}, the " + \
-      f"language instruction is {task_description}, and the bddl file is {task_bddl_file}")
+    f"language instruction is {task_description}, and the bddl file is {task_bddl_file}")
 
 print("Setting up environment...")
-
 
 ### params
 # prompt = "put the milk in the trash"
@@ -141,3 +138,10 @@ for img in replay_images:
     video_writer.append_data(img)
 video_writer.close()
 print(f"Saved replay video to {mp4_path}")
+
+
+# def main():
+    # init_libero()
+
+# if __name__ == "__main__":
+    # main()
