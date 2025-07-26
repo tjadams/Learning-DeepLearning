@@ -54,7 +54,7 @@ class OpenVLA:
             ),
         }
         
-        return observation, libero_img
+        return observation
       
   def quat2axisangle(self, quat):
     """
