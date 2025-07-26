@@ -1,4 +1,6 @@
 import numpy as np
+import os
+import imageio
 
 def get_libero_image(obs):
     img = obs["agentview_image"]
@@ -34,3 +36,16 @@ def invert_gripper_action(action):
     """
     action[..., -1] = action[..., -1] * -1.0
     return action
+
+
+def save_video(replay_images, task_description):
+    print(f"Starting to save video...")
+    video_dir = "outputs/videos"
+    os.makedirs(video_dir, exist_ok=True)
+    processed_task_description = task_description.lower().replace(" ", "_").replace("\n", "_").replace(".", "_")[:50]
+    mp4_path = f"{video_dir}/episode={0}--prompt={processed_task_description}.mp4"
+    video_writer = imageio.get_writer(mp4_path, fps=30)
+    for img in replay_images:
+        video_writer.append_data(img)
+    video_writer.close()
+    print(f"Saved replay video to {mp4_path}")
