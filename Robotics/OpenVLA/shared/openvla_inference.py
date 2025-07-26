@@ -23,10 +23,14 @@ def run_libero_task_with_openvla_inference(model, prompt, unnorm_key, env, task_
                 
         action = model.get_action(model_obs, prompt, unnorm_key)
         
-        # TODO: understand more about why these 3 steps are needed
-        # Normalize and apply action
+        # Normalize gripper action from [0,1] (model inference output) to [-1,+1].
+        # The [-1,+1] format is needed for this environment.
         action = normalize_gripper_action(action, binarize=True)
+
+        # Flip the sign of the gripper action to match the environment's requirements.
         action = invert_gripper_action(action)
+
+        # Convert action to list format expected by the environment.
         action = action.tolist()
         
         env_obs, reward, done, info = env.step(action)
