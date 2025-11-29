@@ -1,4 +1,5 @@
 # Inspired by https://huggingface.co/docs/lerobot/en/il_robots
+# and https://huggingface.co/docs/lerobot/en/getting_started_real_world_robot
 lerobot-teleoperate \
     --robot.type=so101_follower \
     --robot.port=/dev/tty.usbmodem5A460830061  \
