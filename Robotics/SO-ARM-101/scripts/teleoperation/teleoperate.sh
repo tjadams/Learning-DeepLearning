@@ -1,3 +1,5 @@
+# CAREFUL, follower arm will move as fast as possible to match the leader arm's initial position. So make the follower and leader arms start in the same position physically before running this script..
+
 # Inspired by https://huggingface.co/docs/lerobot/en/il_robots
 # and https://huggingface.co/docs/lerobot/en/getting_started_real_world_robot
 lerobot-teleoperate \
