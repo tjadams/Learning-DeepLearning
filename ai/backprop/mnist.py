@@ -1,3 +1,4 @@
+# Goal: mnist wrapper where I'll call my backprop implementation.
 # This code is mostly copied from the PyTorch repo, as an example to learn.
 # https://github.com/pytorch/examples/tree/main/mnist
 
@@ -9,7 +10,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
-
 
 class Net(nn.Module):
     def __init__(self):
@@ -122,7 +122,6 @@ def main():
 
     transform=transforms.Compose([
         transforms.ToTensor(),
-        # I guess this is the mean and standard deviation of the MNIST dataset.
         transforms.Normalize((0.1307,), (0.3081,))
         ])
     dataset1 = datasets.MNIST('../data', train=True, download=True,
