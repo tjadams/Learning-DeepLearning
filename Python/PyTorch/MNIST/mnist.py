@@ -113,8 +113,8 @@ def test(model, device, test_loader):
         100. * correct / len(test_loader.dataset)))
 
 
-def main():
-    # Training settings parsed from command line arguments
+def parse_args_and_setup_device():
+    """Training settings parsed from command line arguments and device setup."""
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
     parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                         help='input batch size for training (default: 64)')
@@ -151,10 +151,15 @@ def main():
         device = torch.device("mps")
     else:
         device = torch.device("cpu")
+    
+    return args, device
 
-    # Set up the data loaders for the training and test sets
+
+def setup_data_loaders(args, device):
+    """Set up the data loaders for the training and test sets."""
     train_kwargs = {'batch_size': args.batch_size}
     test_kwargs = {'batch_size': args.test_batch_size}
+    use_cuda = not args.no_cuda and torch.cuda.is_available()
     if use_cuda:
         cuda_kwargs = {'num_workers': 1,
                        'pin_memory': True,
@@ -176,7 +181,12 @@ def main():
                        transform=transform)
     train_loader = torch.utils.data.DataLoader(dataset1,**train_kwargs)
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
+    
+    return train_loader, test_loader
 
+
+def run_training(args, device, train_loader, test_loader):
+    """Init model and training loop variables, then run training."""
     # Init model and training loop variables
     # The model and data (data.to(device), target.to(device)) must be on the same
     # device otherwise the forward pass model(data) will fail with a device mismatch error
@@ -200,6 +210,12 @@ def main():
 
     if args.save_model:
         torch.save(model.state_dict(), "mnist_cnn.pt")
+
+
+def main():
+    args, device = parse_args_and_setup_device()
+    train_loader, test_loader = setup_data_loaders(args, device)
+    run_training(args, device, train_loader, test_loader)
 
 
 if __name__ == '__main__':
