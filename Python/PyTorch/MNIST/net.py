@@ -1,6 +1,3 @@
-# This code is mostly copied from the PyTorch repo, as an example to learn.
-# https://github.com/pytorch/examples/tree/main/mnist
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
