@@ -1,43 +1,11 @@
-# This code is mostly copied from the PyTorch repo, as an example to learn.
-# https://github.com/pytorch/examples/tree/main/mnist
-
-from __future__ import print_function
 import argparse
+import os
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
-
-
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, 3, 1)
-        self.conv2 = nn.Conv2d(32, 64, 3, 1)
-        # Dropout is a regularization technique to prevent overfitting
-        self.dropout1 = nn.Dropout(0.25)
-        self.dropout2 = nn.Dropout(0.5)
-        self.fc1 = nn.Linear(9216, 128)
-        # 10 outputs for the 10 MNIST prediction classes (digits 0-9)
-        self.fc2 = nn.Linear(128, 10)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = F.relu(x)
-        x = self.conv2(x)
-        x = F.relu(x)
-        x = F.max_pool2d(x, 2)
-        x = self.dropout1(x)
-        x = torch.flatten(x, 1)
-        x = self.fc1(x)
-        x = F.relu(x)
-        x = self.dropout2(x)
-        x = self.fc2(x)
-        # Log softmax to convert the output to a probability distribution over the 10 classes
-        output = F.log_softmax(x, dim=1)
-        return output
+from net import Net
 
 
 def train(args, model, device, train_loader, optimizer, epoch):
@@ -138,6 +106,8 @@ def parse_args_and_setup_device():
                         help='how many batches to wait before logging training status')
     parser.add_argument('--save-model', action='store_true', default=False,
                         help='For Saving the current Model')
+    parser.add_argument('--load-model-and-infer', action='store_true', default=False,
+                        help='Load pt model file from artifacts folder and test it')
     args = parser.parse_args()
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     use_mps = not args.no_mps and torch.backends.mps.is_available()
@@ -212,10 +182,31 @@ def run_training(args, device, train_loader, test_loader):
         torch.save(model.state_dict(), "mnist_cnn.pt")
 
 
+def load_model(device):
+    """Load the model from artifacts folder."""
+    backup_path = '../artifacts/mnist_cnn_backup.pt'
+
+    if not os.path.exists(backup_path):
+        raise FileNotFoundError(f"Model not found at {backup_path}")
+    
+    model = Net().to(device)
+    model.load_state_dict(torch.load(backup_path, map_location=device))
+    return model
+
+
 def main():
     args, device = parse_args_and_setup_device()
     train_loader, test_loader = setup_data_loaders(args, device)
-    run_training(args, device, train_loader, test_loader)
+    
+    if args.load_model_and_infer:
+        print("Loading model from file...")
+        model = load_model(device)
+        
+        print("Calling inference on model:")
+        test(model, device, test_loader)
+    else:
+        print("Starting training...")
+        run_training(args, device, train_loader, test_loader)
 
 
 if __name__ == '__main__':
