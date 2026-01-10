@@ -3,6 +3,7 @@ Robotics/SO-ARM-101/scripts/teleoperation/outputs/
 Python/PyTorch/data/
 Python/PyTorch/artifacts/
 Python/PyTorch/MNIST/mnist_cnn.pt
+ai/data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
