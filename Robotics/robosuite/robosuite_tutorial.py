@@ -22,4 +22,4 @@ for i in range(1000):
   elapsed = time.time() - start
   diff = 1 / MAX_FR - elapsed
   if diff > 0:
-      time.sleep(diff)
+    time.sleep(diff)

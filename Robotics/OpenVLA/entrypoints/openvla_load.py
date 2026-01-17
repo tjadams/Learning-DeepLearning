@@ -4,7 +4,7 @@ import torch
 model_name = "openvla/openvla-7b-finetuned-libero-object"
 
 # Apple Silicon
-device = "mps" 
+device = "mps"
 
 # torch.bfloat16 not supported on mps
 torch_dtype = torch.float16

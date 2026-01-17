@@ -17,7 +17,7 @@ task = task_suite.get_task(task_id)
 task_name = task.name
 task_description = task.language
 task_bddl_file = os.path.join(get_libero_path("bddl_files"), task.problem_folder, task.bddl_file)
-print(f"[info] retrieving task {task_id} from suite {task_suite_name}, the " + \
+print(f"[info] retrieving task {task_id} from suite {task_suite_name}, the " +
       f"language instruction is {task_description}, and the bddl file is {task_bddl_file}")
 
 # Init environment
@@ -36,18 +36,20 @@ init_states = task_suite.get_task_init_states(task_id)
 init_state_id = 0
 env.set_init_state(init_states[init_state_id])
 
+
 def get_libero_image(obs):
-    img = obs["agentview_image"]
-    # rotate 180 degrees to match preprocessing from training
-    img = img[::-1, ::-1]
-    return img
+  img = obs["agentview_image"]
+  # rotate 180 degrees to match preprocessing from training
+  img = img[::-1, ::-1]
+  return img
+
 
 dummy_action = [0.] * 7
 replay_images = []
 for step in range(100):
-    obs, reward, done, info = env.step(dummy_action)
-    img = get_libero_image(obs)
-    replay_images.append(img)
+  obs, reward, done, info = env.step(dummy_action)
+  img = get_libero_image(obs)
+  replay_images.append(img)
 env.close()
 
 video_dir = "outputs/videos"
@@ -56,6 +58,6 @@ processed_task_description = task_description.lower().replace(" ", "_").replace(
 mp4_path = f"{video_dir}/episode={0}--prompt={processed_task_description}.mp4"
 video_writer = imageio.get_writer(mp4_path, fps=30)
 for img in replay_images:
-    video_writer.append_data(img)
+  video_writer.append_data(img)
 video_writer.close()
 print(f"Saved replay video to {mp4_path}")
