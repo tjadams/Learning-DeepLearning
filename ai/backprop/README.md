@@ -6,6 +6,6 @@ Manually created a conda env ahead of time.
 Usage:
 0. `conda activate pytorch`
 1. cd ai/backprop/
-2. python mnist-example/train.py
+2. python mnist-example/train.py --backprop-from-scratch
 
 Next steps: close TODOs in train.py step-by-step

@@ -5,6 +5,8 @@ import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR
 from net import Net
 from utils import get_device, setup_data_loaders, test
+from ..backprop_utils import print_gradients
+from ..backprop_core import zero_gradients
 
 
 def main():
@@ -48,6 +50,8 @@ def parse_args():
                         help='how many batches to wait before logging training status')
     parser.add_argument('--save-model', action='store_true', default=False,
                         help='For Saving the current Model')
+    parser.add_argument('--backprop-from-scratch', action='store_true', default=False,
+                        help='For doing the internals of backprop from scratch')
     return parser.parse_args()
 
 
@@ -91,8 +95,12 @@ def train(args, model, device, train_loader, optimizer, epoch):
 
         # Zero/clear the gradients from the previous batch.
         # Gradients accumulate by default so each backprop adds to the previous gradients
-        # TODO: zero gradients from scratch
-        optimizer.zero_grad()
+        print_gradients(model)
+        if args.backprop_from_scratch:
+            zero_gradients(model)
+        else:
+            optimizer.zero_grad()
+        print_gradients(model)
 
         # Forward pass: compute predicted y by passing x to the model (calls nn.Module.forward via __call__ syntax. I defined forward in the Net class)
         output = model(data)
