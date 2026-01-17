@@ -1,12 +1,19 @@
 import argparse
+import sys
+from pathlib import Path
+
+# Add parent directory to path to allow importing backprop modules
+parent_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(parent_dir))
+
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR
 from net import Net
 from utils import get_device, setup_data_loaders, test
-from ..backprop_utils import print_gradients
-from ..backprop_core import zero_gradients
+from backprop_utils import print_gradients
+from backprop_core import zero_gradients
 
 
 def main():
