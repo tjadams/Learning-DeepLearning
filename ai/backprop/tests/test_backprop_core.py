@@ -1,6 +1,14 @@
 import unittest
 import torch
 import torch.nn as nn
+
+import sys
+from pathlib import Path
+
+# Add parent directory to path to allow importing backprop modules
+parent_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(parent_dir))
+
 from backprop_core import zero_gradients
 
 
