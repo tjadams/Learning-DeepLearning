@@ -103,6 +103,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
     # Zero/clear the gradients from the previous batch.
     # Gradients accumulate by default so each backprop adds to the previous gradients
     print_gradients(model)
+    print("Starting to zero gradients...")
     if args.backprop_from_scratch:
       zero_gradients(model)
     else:

@@ -10,6 +10,15 @@
       "request": "attach",
       "processId": "${command:pickProcess}",
       "justMyCode": false
+    },
+    {
+      "name": "Train MNIST (backprop from scratch)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/ai/backprop/mnist-example/train.py",
+      "args": ["--backprop-from-scratch"],
+      "console": "integratedTerminal",
+      "justMyCode": false
     }
   ]
 }

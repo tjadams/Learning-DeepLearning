@@ -9,5 +9,8 @@
   "autopep8.args": [
     "--indent-size=2",
     "--max-line-length=120"
-  ]
+  ],
+  // Could use this to auto-run conda activate base, where base is $CONDA_DEFAULT_ENV
+  // conda config --show auto_activate_base
+  // "python.terminal.activateEnvironment": true,
 }
