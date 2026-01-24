@@ -59,6 +59,8 @@ def parse_args():
                       help='For Saving the current Model')
   parser.add_argument('--backprop-from-scratch', action='store_true', default=False,
                       help='For doing the internals of backprop from scratch')
+  parser.add_argument('--debug-logs', action='store_true', default=False,
+                      help='Enable debug logging for gradients')
   return parser.parse_args()
 
 
@@ -102,13 +104,14 @@ def train(args, model, device, train_loader, optimizer, epoch):
 
     # Zero/clear the gradients from the previous batch.
     # Gradients accumulate by default so each backprop adds to the previous gradients
-    print_gradients(model)
-    print("Starting to zero gradients...")
+    print_gradients(model, args.debug_logs)
+    if args.debug_logs:
+      print("Starting to zero gradients...")
     if args.backprop_from_scratch:
-      zero_gradients(model)
+      zero_gradients(model, args.debug_logs)
     else:
       optimizer.zero_grad()
-    print_gradients(model)
+    print_gradients(model, args.debug_logs)
 
     # Forward pass: compute predicted y by passing x to the model (calls nn.Module.forward via __call__ syntax. I defined forward in the Net class)
     output = model(data)

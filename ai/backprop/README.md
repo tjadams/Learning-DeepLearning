@@ -6,7 +6,7 @@ Manually created a conda env ahead of time.
 Usage - execution:
 0. `conda activate pytorch`
 1. `cd ai/backprop/`
-2. Execute: `python mnist-example/train.py --backprop-from-scratch`
+2. Execute: `python mnist-example/train.py --backprop-from-scratch --debug-logs`
 
 Usage - unit tests:
 0. `conda activate pytorch`
