@@ -9,7 +9,7 @@ from pathlib import Path
 parent_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(parent_dir))
 
-from backprop_core import zero_gradients
+from backprop_core import zero_gradients, compute_nll_loss
 
 
 class SimpleModel(nn.Module):
@@ -100,6 +100,64 @@ class TestZeroGradients(unittest.TestCase):
           param.grad,
           f"Gradient for {name} should be None"
       )
+
+
+class TestComputeNllLoss(unittest.TestCase):
+  """Unit tests for the compute_nll_loss function."""
+
+  def test_compute_nll_loss(self):
+    """Test that compute_nll_loss computes negative log likelihood loss correctly."""
+    # Create dummy log probabilities (output from log_softmax)
+    # Shape: [batch_size, num_classes]
+    batch_size = 4
+    num_classes = 10
+    output = torch.randn(batch_size, num_classes)
+    # Apply log_softmax to get proper log probabilities
+    output = torch.nn.functional.log_softmax(output, dim=1)
+
+    # Create target class indices
+    # Shape: [batch_size]
+    target = torch.randint(0, num_classes, (batch_size,))
+
+    # Call compute_nll_loss
+    loss = compute_nll_loss(output, target)
+
+    # Verify loss is a tensor
+    self.assertIsInstance(loss, torch.Tensor, "Loss should be a tensor")
+
+    # Verify loss is a scalar (0-dimensional tensor)
+    self.assertEqual(loss.dim(), 0, "Loss should be a scalar")
+
+    # Verify loss matches direct PyTorch call
+    expected_loss = torch.nn.functional.nll_loss(output, target)
+    self.assertTrue(
+        torch.allclose(loss, expected_loss),
+        f"Loss {loss.item()} does not match expected loss {expected_loss.item()}"
+    )
+
+    # Verify loss is non-negative (NLL loss should always be >= 0)
+    self.assertGreaterEqual(
+        loss.item(), 0.0,
+        "NLL loss should be non-negative"
+    )
+
+  def test_compute_nll_loss_different_shapes(self):
+    """Test compute_nll_loss with different batch sizes and number of classes."""
+    # Test with different batch size
+    output1 = torch.nn.functional.log_softmax(torch.randn(8, 5), dim=1)
+    target1 = torch.randint(0, 5, (8,))
+    loss1 = compute_nll_loss(output1, target1)
+
+    # Test with different number of classes
+    output2 = torch.nn.functional.log_softmax(torch.randn(2, 3), dim=1)
+    target2 = torch.randint(0, 3, (2,))
+    loss2 = compute_nll_loss(output2, target2)
+
+    # Verify both are valid scalar tensors
+    self.assertEqual(loss1.dim(), 0, "Loss 1 should be a scalar")
+    self.assertEqual(loss2.dim(), 0, "Loss 2 should be a scalar")
+    self.assertGreaterEqual(loss1.item(), 0.0, "Loss 1 should be non-negative")
+    self.assertGreaterEqual(loss2.item(), 0.0, "Loss 2 should be non-negative")
 
 
 if __name__ == "__main__":

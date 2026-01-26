@@ -15,7 +15,11 @@ def zero_gradients(model, debug=False):
         print("After:")
         print_gradient(name, param, debug)
 
+import torch.nn.functional as F
+
 # Compute loss: negative log likelihood loss
 def compute_nll_loss(output, target):
   # TODO:
-  return target
+  # return target
+  loss = F.nll_loss(output, target)
+  return loss
