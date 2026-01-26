@@ -17,6 +17,7 @@
       "request": "launch",
       "program": "${workspaceFolder}/ai/backprop/mnist-example/train.py",
       "args": ["--backprop-from-scratch", "--debug-logs"],
+      // "args": ["--backprop-from-scratch"],
       "console": "integratedTerminal",
       "justMyCode": false
     }

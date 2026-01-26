@@ -1,3 +1,10 @@
+import sys
+from pathlib import Path
+
+# Add parent directory to path to allow importing backprop modules
+parent_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(parent_dir))
+
 from backprop_core import compute_nll_loss, zero_gradients
 from backprop_utils import print_gradients
 from utils import get_device, setup_data_loaders, test
@@ -7,12 +14,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torch
 import argparse
-import sys
-from pathlib import Path
 
-# Add parent directory to path to allow importing backprop modules
-parent_dir = Path(__file__).parent.parent
-sys.path.insert(0, str(parent_dir))
 
 
 def main():
@@ -103,14 +105,14 @@ def train(args, model, device, train_loader, optimizer, epoch):
 
     # Zero/clear the gradients from the previous batch.
     # Gradients accumulate by default so each backprop adds to the previous gradients
-    print_gradients(model, args.debug_logs)
+    # print_gradients(model, args.debug_logs)
     if args.debug_logs:
       print("Starting to zero gradients...")
     if args.backprop_from_scratch:
       zero_gradients(model, args.debug_logs)
     else:
       optimizer.zero_grad()
-    print_gradients(model, args.debug_logs)
+    # print_gradients(model, args.debug_logs)
 
     # Forward pass: compute predicted y by passing x to the model (calls nn.Module.forward via __call__ syntax. I defined forward in the Net class)
     output = model(data)
@@ -119,9 +121,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
     if args.debug_logs:
       print("Starting to compute loss...")
     if args.backprop_from_scratch:
-      # TODO: finish implementation
-      # loss = compute_nll_loss(output, target)
-      loss = F.nll_loss(output, target)
+      loss = compute_nll_loss(output, target)
     else:
       loss = F.nll_loss(output, target)
 
