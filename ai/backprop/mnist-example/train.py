@@ -1,3 +1,11 @@
+from backprop_core import compute_nll_loss, zero_gradients
+from backprop_utils import print_gradients
+from utils import get_device, setup_data_loaders, test
+from net import Net
+from torch.optim.lr_scheduler import StepLR
+import torch.optim as optim
+import torch.nn.functional as F
+import torch
 import argparse
 import sys
 from pathlib import Path
@@ -5,15 +13,6 @@ from pathlib import Path
 # Add parent directory to path to allow importing backprop modules
 parent_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(parent_dir))
-
-import torch
-import torch.nn.functional as F
-import torch.optim as optim
-from torch.optim.lr_scheduler import StepLR
-from net import Net
-from utils import get_device, setup_data_loaders, test
-from backprop_utils import print_gradients
-from backprop_core import zero_gradients
 
 
 def main():
@@ -117,8 +116,14 @@ def train(args, model, device, train_loader, optimizer, epoch):
     output = model(data)
 
     # Compute the loss: negative log likelihood loss
-    # TODO: compute loss from scratch
-    loss = F.nll_loss(output, target)
+    if args.debug_logs:
+      print("Starting to compute loss...")
+    if args.backprop_from_scratch:
+      # TODO: finish implementation
+      # loss = compute_nll_loss(output, target)
+      loss = F.nll_loss(output, target)
+    else:
+      loss = F.nll_loss(output, target)
 
     # Backward pass: compute gradients via backpropogation (gradients of the loss)
     # TODO: compute gradients from scratch

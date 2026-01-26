@@ -14,3 +14,8 @@ def zero_gradients(model, debug=False):
       if debug:
         print("After:")
         print_gradient(name, param, debug)
+
+# Compute loss: negative log likelihood loss
+def compute_nll_loss(output, target):
+  # TODO:
+  return target
