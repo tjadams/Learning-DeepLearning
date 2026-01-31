@@ -112,7 +112,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
     # Forward pass: compute predicted y by passing x to the model (calls nn.Module.forward via __call__ syntax. I defined forward in the Net class)
     output = model(data)
 
-    # Compute the loss: negative log likelihood loss
+    # Compute the loss for this batch: negative log likelihood loss
     loss = compute_loss(output, target, args)
 
     # Backward pass: compute gradients via backpropogation (gradients of the loss)
@@ -149,8 +149,7 @@ def compute_loss(output, target, args):
     print("Starting to compute loss...")
 
   if args.backprop_from_scratch:
-    # loss = backprop_core.compute_nll_loss(output, target)
-    loss = F.nll_loss(output, target)
+    loss = backprop_core.compute_nll_loss(output, target)
   else:
     loss = F.nll_loss(output, target)
 

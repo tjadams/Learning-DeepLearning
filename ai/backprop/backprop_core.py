@@ -35,37 +35,40 @@ def zero_gradients(model, debug=False):
 ########################################
 ########################################
 # Why the shapes of the output and target are different:
-# 64 images go into the model. The model does 10-class classification. 
-# The forward pass of the model runs on each image to produce logits. 
-# Logits are produced for each of the classes. 
+# 64 images go into the model. The model does 10-class classification.
+# The forward pass of the model runs on each image to produce logits.
+# Logits are produced for each of the classes.
 # 1 image -> 10 logits (10 classes)
 # 64 images * 10 classes, because doing the above 64 times.
 ########################################
 # How to read the output tensor?
-# Row i is the ith image. 
+# Row i is the ith image.
 # Column j is the logit for class j (e.g. classes 0-9), for the respective image.
-# After doing softmax on the logits, you get the probability. 
+# After doing softmax on the logits, you get the probability.
 # So basically you'll find the one with the highest probability.
 # Highest probability is the predicted class for that image
 # Then you'll compare that with the target to see if it was accurate.
 def compute_nll_loss(output, target):
   # Convert logits to probabilities
-  probabilities = F.softmax(output, dim=1)
+  output_probabilities = F.softmax(output, dim=1)
 
-  # Can have this be an arg
-  batch_size = 64
+  # batch_size = 64
+  batch_size = len(target)
 
   loss_per_image_in_batch = torch.zeros(batch_size)
 
   # Compute loss for each image in the batch
-  for i in range(0, batch_size):
+  # for i in range(0, batch_size):
+  for i in range(batch_size):
     correct_class = target[i]
 
-    probability_predicted = output[i][correct_class]
+    probability_of_correct_class = output_probabilities[i][correct_class]
 
-    loss_per_image_in_batch[i] = -1*torch.log(probability_predicted)
-    
+    loss_per_image_in_batch[i] = -1*torch.log(probability_of_correct_class)
 
-  # TODO: calculate loss based on loss_per_image_in_batch
+  # Loss is basically an average of the loss_per_image_in_batch
+  # loss = (1/batch_size) * sum(loss_per_image_in_batch)
+  # Using sum is less efficient so use a tensor operation to do the average
+  loss = loss_per_image_in_batch.mean()
 
   return loss
