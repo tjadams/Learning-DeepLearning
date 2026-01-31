@@ -1,20 +1,19 @@
+import argparse
 import sys
 from pathlib import Path
 
 # Add parent directory to path to allow importing backprop modules
+# This must be done BEFORE importing backprop_core
 parent_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(parent_dir))
 
-from backprop_core import compute_nll_loss, zero_gradients
-from backprop_utils import print_gradients
-from utils import get_device, setup_data_loaders, test
-from net import Net
-from torch.optim.lr_scheduler import StepLR
-import torch.optim as optim
-import torch.nn.functional as F
 import torch
-import argparse
-
+import torch.nn.functional as F
+import torch.optim as optim
+from torch.optim.lr_scheduler import StepLR
+from net import Net
+from utils import get_device, setup_data_loaders, test
+import backprop_core as backprop_core
 
 
 def main():
@@ -61,7 +60,10 @@ def parse_args():
   parser.add_argument('--backprop-from-scratch', action='store_true', default=False,
                       help='For doing the internals of backprop from scratch')
   parser.add_argument('--debug-logs', action='store_true', default=False,
-                      help='Enable debug logging for gradients')
+                      help='Enable debug logging')
+  parser.add_argument('--debug-zero-gradients', action='store_true', default=False,
+                      help='Enable debug logging for zeroing gradients')
+
   return parser.parse_args()
 
 
@@ -92,7 +94,7 @@ def run_training(args, device, train_loader, test_loader):
     torch.save(model.state_dict(), "mnist_cnn.pt")
 
 
-# TODO: remove optimizer param or use args to switch between using it or using the from-scratch backprop implementation
+# Note: optimizer param not needed when --backprop-from-scratch provided
 def train(args, model, device, train_loader, optimizer, epoch):
   """Training function for a single epoch."""
   # Set model to training mode (dropout is turned on)
@@ -105,34 +107,20 @@ def train(args, model, device, train_loader, optimizer, epoch):
 
     # Zero/clear the gradients from the previous batch.
     # Gradients accumulate by default so each backprop adds to the previous gradients
-    # print_gradients(model, args.debug_logs)
-    if args.debug_logs:
-      print("Starting to zero gradients...")
-    if args.backprop_from_scratch:
-      zero_gradients(model, args.debug_logs)
-    else:
-      optimizer.zero_grad()
-    # print_gradients(model, args.debug_logs)
+    zero_gradients(model, args, optimizer)
 
     # Forward pass: compute predicted y by passing x to the model (calls nn.Module.forward via __call__ syntax. I defined forward in the Net class)
     output = model(data)
 
     # Compute the loss: negative log likelihood loss
-    if args.debug_logs:
-      print("Starting to compute loss...")
-    if args.backprop_from_scratch:
-      loss = compute_nll_loss(output, target)
-    else:
-      loss = F.nll_loss(output, target)
+    loss = compute_loss(output, target, args)
 
     # Backward pass: compute gradients via backpropogation (gradients of the loss)
-    # TODO: compute gradients from scratch
-    loss.backward()
+    backward_pass(loss, args)
 
     # Update the model's weights (using gradient descent results stored in .grad field)
     # weight = weight - learning_rate * weight.grad
-    # TODO: update model weights from scratch
-    optimizer.step()
+    update_model_weights(optimizer, args)
 
     # Log the training status every log_interval batches
     if batch_idx % args.log_interval == 0:
@@ -141,6 +129,63 @@ def train(args, model, device, train_loader, optimizer, epoch):
           100. * batch_idx / len(train_loader), loss.item()))
       if args.dry_run:
         break
+
+
+def zero_gradients(model, args, optimizer):
+  if args.debug_logs:
+    print("Starting to zero gradients...")
+
+  if args.backprop_from_scratch:
+    backprop_core.zero_gradients(model, args.debug_zero_gradients)
+  else:
+    optimizer.zero_grad()
+
+  if args.debug_logs:
+    print("Finished zeroing gradients")
+
+
+def compute_loss(output, target, args):
+  if args.debug_logs:
+    print("Starting to compute loss...")
+
+  if args.backprop_from_scratch:
+    # loss = backprop_core.compute_nll_loss(output, target)
+    loss = F.nll_loss(output, target)
+  else:
+    loss = F.nll_loss(output, target)
+
+  if args.debug_logs:
+    print("Finished computing loss!")
+
+  return loss
+
+
+def backward_pass(loss, args):
+  if args.debug_logs:
+    print("Starting backward pass to compute gradients...")
+
+  if args.backprop_from_scratch:
+    # TODO: compute gradients from scratch
+    loss.backward()
+  else:
+    loss.backward()
+
+  if args.debug_logs:
+    print("Finished backward pass and computing gradients!")
+
+
+def update_model_weights(optimizer, args):
+  if args.debug_logs:
+    print("Starting to update model weights...")
+
+  if args.backprop_from_scratch:
+    # TODO: update model weights from scratch
+    optimizer.step()
+  else:
+    optimizer.step()
+
+  if args.debug_logs:
+    print("Finished updating model weights!")
 
 
 if __name__ == '__main__':
