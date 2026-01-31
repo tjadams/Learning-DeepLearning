@@ -1,3 +1,4 @@
+import torch
 import torch.nn.functional as F
 from backprop_utils import print_gradient
 
@@ -48,6 +49,23 @@ def zero_gradients(model, debug=False):
 # Highest probability is the predicted class for that image
 # Then you'll compare that with the target to see if it was accurate.
 def compute_nll_loss(output, target):
-  # TODO: manual implementation
-  loss = F.nll_loss(output, target)
+  # Convert logits to probabilities
+  probabilities = F.softmax(output, dim=1)
+
+  # Can have this be an arg
+  batch_size = 64
+
+  loss_per_image_in_batch = torch.zeros(batch_size)
+
+  # Compute loss for each image in the batch
+  for i in range(0, batch_size):
+    correct_class = target[i]
+
+    probability_predicted = output[i][correct_class]
+
+    loss_per_image_in_batch[i] = -1*torch.log(probability_predicted)
+    
+
+  # TODO: calculate loss based on loss_per_image_in_batch
+
   return loss
