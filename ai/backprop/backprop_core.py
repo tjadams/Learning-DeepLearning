@@ -93,7 +93,19 @@ def compute_nll_loss(output, target):
   # x = self.fc2(x)
   # output = F.log_softmax(x, dim=1)
 
+
+# Backpropagation is just the chain rule applied to a graph.
+# Chain rule example: dL/dW = dL/dA * dA/dW (dA terms cancel out)
+# We start with the loss and apply the chain rule to each layer to compute the gradients.
+# We will later (outside of this function) use the gradients to update the weights of the model.
 def backward_pass(model, loss, args):
+  # Compute gradients for each layer
+
+    # Step 1: Gradient w.r.t. loss itself = 1.0
+    # f(x) = x, so f'(x) = 1.0
+    # dL/dL = 1.0
+    grad_loss = 1.0
+
   # log_softmax: Compute gradients
   # TODO:
 
