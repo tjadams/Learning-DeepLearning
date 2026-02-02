@@ -72,3 +72,65 @@ def compute_nll_loss(output, target):
   loss = loss_per_image_in_batch.mean()
 
   return loss
+
+# More details at backward_pass.md
+# For the most fundamental implementation, using Mini-batch Gradient Descent with plain (vanilla) SGD (Stochastic Gradient Descent)
+# For every weight, take the derivative of the loss function with respect to that weight.
+# This will be the gradient of the loss function with respect to that weight, a.k.a.
+# the gradient of that weight.
+
+# Hardcoded to MNIST Net for now, starting from last layer
+  #  x = self.conv1(x)
+  # x = F.relu(x)
+  # x = self.conv2(x)
+  # x = F.relu(x)
+  # x = F.max_pool2d(x, 2)
+  # x = self.dropout1(x)
+  # x = torch.flatten(x, 1)
+  # x = self.fc1(x)
+  # x = F.relu(x)
+  # x = self.dropout2(x)
+  # x = self.fc2(x)
+  # output = F.log_softmax(x, dim=1)
+
+def backward_pass(model, loss, args):
+  # log_softmax: Compute gradients
+  # TODO:
+
+
+  # for name, param in model.named_parameters():
+    # if param.grad is not None:
+      # param.grad = compute_gradient(loss, param)
+
+  # fc2: Compute gradients
+  # TODO:
+
+  # dropout2: Compute gradients
+  # TODO:
+
+  # relu: Compute gradients
+  # TODO:
+
+  # fc1: Compute gradients
+  # TODO:
+  
+  # flatten: Compute gradients
+# TODO:
+
+  # dropout1: Compute gradients
+  # TODO:
+
+  # max_pool2d: Compute gradients
+  # TODO:
+
+  # relu: compute gradients
+  # TODO:
+
+  # conv2: Compute gradients
+  # TODO:
+
+  # relu: compute gradients
+  # TODO:
+
+  # conv1: Compute gradients
+  # TODO:

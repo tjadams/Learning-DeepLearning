@@ -116,7 +116,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
     loss = compute_loss(output, target, args)
 
     # Backward pass: compute gradients via backpropogation (gradients of the loss)
-    backward_pass(loss, args)
+    backward_pass(model, loss, args)
 
     # Update the model's weights (using gradient descent results stored in .grad field)
     # weight = weight - learning_rate * weight.grad
@@ -159,13 +159,12 @@ def compute_loss(output, target, args):
   return loss
 
 
-def backward_pass(loss, args):
+def backward_pass(model, loss, args):
   if args.debug_logs:
     print("Starting backward pass to compute gradients...")
 
   if args.backprop_from_scratch:
-    # TODO: compute gradients from scratch
-    loss.backward()
+    backprop_core.backward_pass(model, loss, args)
   else:
     loss.backward()
 
