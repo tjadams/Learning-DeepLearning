@@ -29,6 +29,44 @@
  - The gradient applies here because the loss function has multiple input variables (multiple weights as parameters)
 
  # How does gradient descent work?
+- Intuitively, we need to pass the end result's (forward pass's) feedback towards the beginning layer
+- So while we're going through end to front, we can calculate the gradients (and even update the weights in-place if we want, or we can do a separate end to front pass for that)
+- In summary, the gradient is just the partial derivative of the Loss with respect to the respective weight that we're calculating the gradient for
+- When we're at layer N, we do calculate the partial derivative of the loss w.r.t each weight in that layer (a.ka. gradient of the weight)
+- Repeat for all layers
+- To calculate the gradient of the weight:
+
+# What's a spelled-out example of gradient descent?
+- Network: x -> h -> y_hat -> L
+- Network with weights : x -> (w1) -> h -> y_hat -> (w2) -> L
+- w1: weight of x -> h
+- w2: weight of h to y_hat
+- Using MSE for Loss
+- h = w1 * x
+- y_hat = w2 * h
+- L = (y_hat - y)^2
+- y is the target data used for training, and y_hat is the forward pass result
+
+- Gradient for w2 = dL/dw2 = dL/dy_hat * dy_hat/dw2 
+- dL/dy_hat = 2*(y_hat - y), from calculus derivatives
+- dy_hat/dw2 = 1*h = h, from calculus derivatives
+- Subbing into the equation:
+- Gradient for w2 = dL/dy_hat * dy_hat/dw2 = 2*(y_hat - y) * h = 2h(y_hat - y)
+- Sub in h
+- Gradient for w2 = 2*(w1*x)(y_hat - y) = 2*w1*x(y_hat - y)
+
+- It makes sense for earlier weights (closer to network entrance, like w1) to have more factors in their gradient
+- Gradient for w1 = dL/dw1 = <RHS>
+- RHS is dL/dy_hat * dy_hat/dh * dh/dw1
+- Options of terms to include: dL/dy_hat, dy_hat/dw2, dy_hat/dh, dh/dx, dh/dw1, dx/dw1
+- dL/dy_hat makes sense because you need numerator to have dL and dy_hat is the output, so each term is needed
+- You need some other term with dy_hat in numerator, and there are 2
+- Why do we exclude dy_hat/dw2 and keep dy_hat/dh?
+- Answer: we include every intermediate variables that lie on the path from w1 to L, excluding other weights. So that is: w1, h, y_hat, L. So from right to left: dL/dy_hat * dy_hat/dh * dh/dw1
+- What do these terms mean - dL/dy_hat: how sensitive is the loss to the network output?
+- What do these terms mean - dy_hat/dh: how sensitive is the network output to the hidden layer?
+ - What do these terms mean - dh/dw1: how sensitive is the hidden layer to weight 1?
+
 
 
  # What is the intuition behind updating the weights after the gradient calculation?
