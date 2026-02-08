@@ -1,3 +1,10 @@
+import backprop_core as backprop_core
+from utils import get_device, setup_data_loaders, test
+from net import Net
+from torch.optim.lr_scheduler import StepLR
+import torch.optim as optim
+import torch.nn.functional as F
+import torch
 import argparse
 import sys
 from pathlib import Path
@@ -6,14 +13,6 @@ from pathlib import Path
 # This must be done BEFORE importing backprop_core
 parent_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(parent_dir))
-
-import torch
-import torch.nn.functional as F
-import torch.optim as optim
-from torch.optim.lr_scheduler import StepLR
-from net import Net
-from utils import get_device, setup_data_loaders, test
-import backprop_core as backprop_core
 
 
 def main():
@@ -116,7 +115,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
     loss = compute_loss(output, target, args)
 
     # Backward pass: compute gradients via backpropogation (gradients of the loss)
-    backward_pass(model, loss, args)
+    backward_pass(model, loss, output, target, args)
 
     # Update the model's weights (using gradient descent results stored in .grad field)
     # weight = weight - learning_rate * weight.grad
@@ -159,12 +158,12 @@ def compute_loss(output, target, args):
   return loss
 
 
-def backward_pass(model, loss, args):
+def backward_pass(model, loss, output, target, args):
   if args.debug_logs:
     print("Starting backward pass to compute gradients...")
 
   if args.backprop_from_scratch:
-    backprop_core.backward_pass(model, loss, args)
+    backprop_core.backward_pass(model, loss, output, target, args)
   else:
     loss.backward()
 

@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from backprop_utils import print_gradient
 
@@ -94,55 +95,68 @@ def compute_nll_loss(output, target):
   # output = F.log_softmax(x, dim=1)
 
 
+def view_model(model):
+  # View all model parameters (weights and biases)
+  for name, param in model.named_parameters():
+    print(f"{name}: {param.data}")
+    print(f"Shape: {param.shape}\n")
+
+  # View weights/biases of specific layer
+  print("conv1 weights:", model.conv1.weight.data)
+  print("conv1 bias:", model.conv1.bias.data)
+  print("fc1 weights:", model.fc1.weight.data)
+  print("fc1 bias:", model.fc1.bias.data)
+  print("fc2 weights:", model.fc2.weight.data)
+  print("fc2 bias:", model.fc2.bias.data)
+
 # Backpropagation is just the chain rule applied to a graph.
 # Chain rule example: dL/dW = dL/dA * dA/dW (dA terms cancel out)
 # We start with the loss and apply the chain rule to each layer to compute the gradients.
 # We will later (outside of this function) use the gradients to update the weights of the model.
-def backward_pass(model, loss, args):
-  # Compute gradients for each layer
-
-    # Step 1: Gradient w.r.t. loss itself = 1.0
-    # f(x) = x, so f'(x) = 1.0
-    # dL/dL = 1.0
-    grad_loss = 1.0
-
-  # log_softmax: Compute gradients
-  # TODO:
 
 
-  # for name, param in model.named_parameters():
-    # if param.grad is not None:
-      # param.grad = compute_gradient(loss, param)
+def backward_pass(model, loss, output, target, args):
+  trainable_layers = []
+  for name, module in model.named_modules():
+    if isinstance(module, (nn.Conv2d, nn.Linear)):
+      trainable_layers.append((name, module))
 
-  # fc2: Compute gradients
-  # TODO:
+  # Process layers backwards, from last to first
+  iterate_over_layers = reversed(trainable_layers)
+  kept_layers = []
 
-  # dropout2: Compute gradients
-  # TODO:
+  # Expect to see this in iterate_over_layers for MNIST:
+  # 1st element: Linear(128, 10)
+  # 2nd element: Linear(9216, 128)
+  # 3rd element: Conv2d(32, 64, 3, 1)
+  # 4th element: Conv2d(1, 32, 3, 1)
 
-  # relu: Compute gradients
-  # TODO:
+  # Actual output looks right except for
+  # 1. The shape elements are in different positions, not sure if that matters
+  # 2. Shapes for conv2ds are a bit unexpected
+  # Processing layer: fc2 (Linear)
+  # Layer has weights with shape: torch.Size([10, 128])
+  # Processing layer: fc1 (Linear)
+  # Layer has weights with shape: torch.Size([128, 9216])
+  # Processing layer: conv2 (Conv2d)
+  # Layer has weights with shape: torch.Size([64, 32, 3, 3])
+  # Processing layer: conv1 (Conv2d)
+  # Layer has weights with shape: torch.Size([32, 1, 3, 3])
 
-  # fc1: Compute gradients
-  # TODO:
-  
-  # flatten: Compute gradients
-# TODO:
+  for name, module in iterate_over_layers:
+    layer_has_weight = hasattr(module, 'weight') and module.weight is not None
+    layer_has_bias = hasattr(module, 'bias') and module.bias is not None
 
-  # dropout1: Compute gradients
-  # TODO:
+    if layer_has_weight and layer_has_bias:
+      kept_layers.append((name, module))
 
-  # max_pool2d: Compute gradients
-  # TODO:
+  for name, module in kept_layers:
+    print(f"Processing layer: {name} ({type(module).__name__})")
+    print(f"Layer has weights with shape: {module.weight.shape}")
 
-  # relu: compute gradients
-  # TODO:
+  # TODO: Compute gradients for each layer (linear, linear, conv2d, conv2d)
 
-  # conv2: Compute gradients
-  # TODO:
-
-  # relu: compute gradients
-  # TODO:
-
-  # conv1: Compute gradients
-  # TODO:
+  # Step 1: Gradient w.r.t. loss itself = 1.0
+  # f(x) = x, so f'(x) = 1.0
+  # dL/dL = 1.0
+  grad_loss = 1.0

@@ -3,6 +3,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+# The following modules have weights and biases (parameters):
+# Conv2D (convolutional)
+# Linear (fully connected layer)
+
+# These don't have weights or biases
+# Dropout (randomly drops out elements)
+# Anything from F. are functional only: relu, max_pool2d, flatten, log_softmax
 class Net(nn.Module):
   def __init__(self):
     super(Net, self).__init__()
