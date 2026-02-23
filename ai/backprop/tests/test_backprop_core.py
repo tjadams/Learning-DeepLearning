@@ -9,7 +9,11 @@ from pathlib import Path
 parent_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(parent_dir))
 
-from backprop_core import zero_gradients, compute_nll_loss
+from backprop_core import zero_gradients, compute_nll_loss, backward_pass
+
+# Add mnist-example to path so we can import Net
+mnist_dir = Path(__file__).parent.parent / 'mnist-example'
+sys.path.insert(0, str(mnist_dir))
 
 
 class SimpleModel(nn.Module):
@@ -158,6 +162,76 @@ class TestComputeNllLoss(unittest.TestCase):
     self.assertEqual(loss2.dim(), 0, "Loss 2 should be a scalar")
     self.assertGreaterEqual(loss1.item(), 0.0, "Loss 1 should be non-negative")
     self.assertGreaterEqual(loss2.item(), 0.0, "Loss 2 should be non-negative")
+
+
+class TestBackwardPass(unittest.TestCase):
+  """Compare manual backward_pass gradients against PyTorch autograd."""
+
+  def test_gradients_match_autograd(self):
+    """All 8 parameter gradients (4 layers x weight+bias) should match PyTorch autograd."""
+    from net import Net
+
+    torch.manual_seed(42)
+
+    # Use eval mode so dropout is disabled — this makes the comparison deterministic.
+    # In training mode, our manual dropout mask would differ from PyTorch's internal one.
+    model = Net()
+    model.eval()
+
+    # Create a random batch of "images" and targets
+    batch_size = 8
+    data = torch.randn(batch_size, 1, 28, 28)
+    target = torch.randint(0, 10, (batch_size,))
+
+    # --- Run our manual backward pass ---
+    output = model(data)
+    loss = compute_nll_loss(output, target)
+    backward_pass(model, loss, output, target, args=None)
+
+    # Save our manually computed gradients
+    manual_grads = {}
+    for name, param in model.named_parameters():
+      self.assertIsNotNone(param.grad, f"Manual backward_pass didn't set grad for {name}")
+      manual_grads[name] = param.grad.clone()
+
+    # --- Run PyTorch autograd for comparison ---
+    # Zero all gradients first
+    for param in model.parameters():
+      param.grad = None
+
+    # Re-run forward pass and use PyTorch's autograd backward
+    # We need to recompute using the same loss function path.
+    # compute_nll_loss takes log_softmax output and applies softmax + -log,
+    # so we replicate that same path here with autograd enabled.
+    output2 = model(data)
+    loss2 = compute_nll_loss(output2, target)
+    loss2.backward()
+
+    # --- Compare all 8 parameter gradients ---
+    param_names = [name for name, _ in model.named_parameters()]
+    self.assertEqual(len(param_names), 8, "Expected 8 parameters (4 layers x weight+bias)")
+
+    for name in param_names:
+      param = dict(model.named_parameters())[name]
+      self.assertIsNotNone(param.grad, f"Autograd didn't set grad for {name}")
+
+      manual = manual_grads[name]
+      autograd = param.grad
+
+      self.assertEqual(manual.shape, autograd.shape,
+                       f"Shape mismatch for {name}: manual {manual.shape} vs autograd {autograd.shape}")
+
+      matches = torch.allclose(manual, autograd, atol=1e-5, rtol=1e-4)
+      if not matches:
+        max_diff = (manual - autograd).abs().max().item()
+        mean_diff = (manual - autograd).abs().mean().item()
+        self.fail(
+          f"Gradient mismatch for {name}:\n"
+          f"  max abs diff: {max_diff:.6e}\n"
+          f"  mean abs diff: {mean_diff:.6e}\n"
+          f"  manual grad range: [{manual.min().item():.6e}, {manual.max().item():.6e}]\n"
+          f"  autograd range: [{autograd.min().item():.6e}, {autograd.max().item():.6e}]"
+        )
 
 
 if __name__ == "__main__":
