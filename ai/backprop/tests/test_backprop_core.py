@@ -9,7 +9,10 @@ from pathlib import Path
 parent_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(parent_dir))
 
-from backprop_core import zero_gradients, compute_nll_loss, backward_pass
+import argparse
+import copy
+
+from backprop_core import zero_gradients, compute_nll_loss, backward_pass, update_weights
 
 # Add mnist-example to path so we can import Net
 mnist_dir = Path(__file__).parent.parent / 'mnist-example'
@@ -231,6 +234,60 @@ class TestBackwardPass(unittest.TestCase):
           f"  mean abs diff: {mean_diff:.6e}\n"
           f"  manual grad range: [{manual.min().item():.6e}, {manual.max().item():.6e}]\n"
           f"  autograd range: [{autograd.min().item():.6e}, {autograd.max().item():.6e}]"
+        )
+
+
+class TestUpdateWeights(unittest.TestCase):
+  """Compare update_weights against torch.optim.SGD (no momentum, no weight decay)."""
+
+  def test_weights_match_sgd(self):
+    """update_weights(lr=0.01) should produce the same parameters as SGD.step() with lr=0.01."""
+    from net import Net
+
+    torch.manual_seed(42)
+
+    model = Net()
+    model.eval()
+
+    data = torch.randn(8, 1, 28, 28)
+    target = torch.randint(0, 10, (8,))
+
+    # Deepcopy before backward_pass: backward_pass caches non-leaf tensors on
+    # the model, which makes deepcopy fail if called after.
+    ref_model = copy.deepcopy(model)
+
+    # Populate .grad on all parameters via our manual backward pass
+    output = model(data)
+    loss = compute_nll_loss(output, target)
+    backward_pass(model, loss, output, target, args=None)
+
+    # Copy the computed gradients to the reference model so SGD.step() has the
+    # same gradients to work with (both models started from identical weights).
+    for (name, param), (_, ref_param) in zip(
+        model.named_parameters(), ref_model.named_parameters()
+    ):
+      self.assertIsNotNone(param.grad, f"backward_pass didn't set grad for {name}")
+      ref_param.grad = param.grad.clone()
+
+    args = argparse.Namespace(lr=0.01, backprop_from_scratch=True, debug_logs=False)
+
+    # Apply our SGD update to the original model
+    update_weights(model, args)
+
+    # Apply PyTorch SGD (no momentum, no weight decay) to the reference copy
+    sgd = torch.optim.SGD(ref_model.parameters(), lr=0.01)
+    sgd.step()
+
+    # All 8 parameters must match
+    for (name, param), (_, ref_param) in zip(
+        model.named_parameters(), ref_model.named_parameters()
+    ):
+      matches = torch.allclose(param.data, ref_param.data, atol=1e-6, rtol=1e-5)
+      if not matches:
+        max_diff = (param.data - ref_param.data).abs().max().item()
+        self.fail(
+          f"Weight mismatch for {name} after update_weights vs SGD.step():\n"
+          f"  max abs diff: {max_diff:.6e}"
         )
 
 
