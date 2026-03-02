@@ -20,6 +20,12 @@ CLIP-BC Policy
 - Policy head: small MLP (2–4 layers)
 - Action output: SO-ARM-101 commands (e.g., Δx, Δy, Δz, Δroll, Δpitch, Δyaw, gripper)
 
+Another idea:
+- Vision encoder: tiny CNN
+- Text encoder: tiny tokenizer + Embedding + GRU
+- Fusion: concat → MLP
+- Output: joint positions (regression)
+
 Why this fits “couple minutes”: you’re not trying to learn perception or language from scratch—just a small mapping from already-meaningful embeddings to actions.
 
 Inputs
@@ -47,6 +53,16 @@ Couple minutes of data can work, but only under these conditions:
 - You keep the policy output simple (delta pose + gripper)
 - You do normalization + action smoothing
 - You accept it may overfit and behave well only in the same setup/lighting
+
+## Data format
+Record demonstrations at (say) 10–30 Hz and save one dataset file:
+- images: uint8 [N, H, W, 3] (e.g., 128×128)
+- joints: float32 [N, J] (J = number of joints)
+- text: list of N strings (same command repeated is fine)
+- optional: episode_id to prevent mixing normalization across tasks (not required)
+- Easiest: store as a .npz plus a .json for texts. Example:
+- demo.npz contains images, joints
+- demo_text.json contains text array length N
 
 ## Source
 My private ChatGPT convo: https://chatgpt.com/c/69a4fe0f-95b4-8333-9c24-dd978ce531d1 
