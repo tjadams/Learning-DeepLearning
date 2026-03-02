@@ -1,6 +1,12 @@
 # TinyVLA
 From-scratch/vibe-coded implementation of the TinyVLA model. 
 
+## Project Goals
+(a) code VLA end-to-end from scratch / vibe-coded 
+(b) train on literally a couple minutes of real-world data from my SO-ARM-101
+(c) maybe simulate in MuJoCo
+(d) deploy on an SO-ARM-101
+
 ## Quote from paper
 Current VLA models face significant challenges: they are slow during inference and require extensive pre-training on large amounts of robotic data, making real-world deployment difficult.
 
