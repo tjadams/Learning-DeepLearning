@@ -374,3 +374,14 @@ def backward_pass(model, loss, output, target, args):
   model.conv1.weight.grad = weight_grad.sum(dim=0).view(model.conv1.weight.shape)
 
   # No need to compute input gradient — nothing before conv1 has parameters.
+
+# Update Weights using gradients found in gradient descent
+# `torch.no_grad()` prevents autograd from tracking the update on leaf tensors (required, else RuntimeError)
+# `param -= ...` updates in-place. Short form for param.data = param.date - ...
+# `args.lr` — learning rate from argparse (`--lr`, default `1.0`)
+# Reuses `model.named_parameters()` pattern from `zero_gradients` (lines 7–8)
+def update_weights(model, args):
+  with torch.no_grad():
+    for name, param in model.named_parameters():
+      if param.grad is not None:
+        param -= args.lr * param.grad

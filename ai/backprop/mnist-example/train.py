@@ -119,7 +119,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
 
     # Update the model's weights (using gradient descent results stored in .grad field)
     # weight = weight - learning_rate * weight.grad
-    update_model_weights(optimizer, args)
+    update_model_weights(model, optimizer, args)
 
     # Log the training status every log_interval batches
     if batch_idx % args.log_interval == 0:
@@ -171,13 +171,12 @@ def backward_pass(model, loss, output, target, args):
     print("Finished backward pass and computing gradients!")
 
 
-def update_model_weights(optimizer, args):
+def update_model_weights(model, optimizer, args):
   if args.debug_logs:
     print("Starting to update model weights...")
 
   if args.backprop_from_scratch:
-    # TODO: update model weights from scratch
-    optimizer.step()
+    backprop_core.update_weights(model, args)
   else:
     optimizer.step()
 
