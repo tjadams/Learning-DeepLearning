@@ -3,6 +3,7 @@ import tempfile
 import textwrap
 import time
 import xml.etree.ElementTree as ET
+import multiprocessing as mp
 import numpy as np
 import mujoco
 import mujoco.viewer
@@ -186,57 +187,94 @@ def _get_controlled_joint_indices(model: mujoco.MjModel) -> list[int]:
   return qpos_indices
 
 
+def _display_worker(queue):
+  """Runs in a separate process; displays camera frames with cv2."""
+  import cv2
+  while True:
+    item = queue.get()
+    if item is None:  # sentinel: time to stop
+      break
+    for title, img_rgb in item:
+      cv2.imshow(title, cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR))
+    cv2.waitKey(1)
+  cv2.destroyAllWindows()
+
+
+def run_policy_and_actuate_robot(model, data, device, text_ids, j_std, j_mean, qpos_indices, policy):
+  print("TODO: run policy and actuate robot")
+  # # Render RGB from sim as policy input
+  # rgb = _get_simulated_camera_img(model, data)  # HWC uint8
+  # img_t = preprocess_image(rgb, image_size=128).unsqueeze(0).to(device)
+
+  # # Policy predicts normalized joint targets
+  # with torch.no_grad():
+  #   pred_norm = policy(img_t, text_ids).squeeze(0).cpu().numpy()
+
+  # q_des = pred_norm * j_std + j_mean  # de-normalize
+
+  # # Write target joints into qpos directly (simple visualization mode)
+  # # If you want physics-consistent motion, use actuators + ctrl instead.
+  # qpos = data.qpos.copy()
+  # for k, qi in enumerate(qpos_indices):
+  #   if k < len(q_des):
+  #     qpos[qi] = q_des[k]
+  # data.qpos[:] = qpos
+
+
 def _run_viewer_loop(model: mujoco.MjModel, data: mujoco.MjData) -> None:
+  # TODO:
   # run_dir = "runs/tyler_vla"
   # command = "pick up the ball and place it in the bowl"
 
+  # TODO:
   # qpos_indices = _get_controlled_joint_indices(model)
   # text_ids = tokenizer.encode(command, max_len=16).unsqueeze(0).to(device)
   # policy, tokenizer, j_mean, j_std, device = load_policy(run_dir)
 
   print("Launching simulation...")
 
+  # Two renderers — one per camera
   gripper_renderer = mujoco.Renderer(model, height=240, width=320)
+  overview_renderer = mujoco.Renderer(model, height=240, width=320)
+
+  # Spawn display subprocess (has its own main thread; cv2.imshow works there)
+  display_queue = mp.Queue(maxsize=2)
+  display_proc = mp.Process(target=_display_worker, args=(display_queue,), daemon=True)
+  display_proc.start()
 
   try:
     with mujoco.viewer.launch_passive(model, data) as viewer:
-      # (Optional) start from a neutral pose if you have one
+      # Init position of model
       mujoco.mj_forward(model, data)
 
-      last = time.time()
       while viewer.is_running():
-        now = time.time()
-        dt = now - last
-        last = now
+        # TODO:
+        # run_policy_and_actuate_robot(model, data, device, text_ids, j_std, j_mean, qpos_indices, policy)
 
-        # # Render RGB from sim as policy input
-        # rgb = _get_simulated_camera_img(model, data)  # HWC uint8
-        # img_t = preprocess_image(rgb, image_size=128).unsqueeze(0).to(device)
-
-        # # Policy predicts normalized joint targets
-        # with torch.no_grad():
-        #   pred_norm = policy(img_t, text_ids).squeeze(0).cpu().numpy()
-
-        # q_des = pred_norm * j_std + j_mean  # de-normalize
-
-        # # Write target joints into qpos directly (simple visualization mode)
-        # # If you want physics-consistent motion, use actuators + ctrl instead.
-        # qpos = data.qpos.copy()
-        # for k, qi in enumerate(qpos_indices):
-        #   if k < len(q_des):
-        #     qpos[qi] = q_des[k]
-        # data.qpos[:] = qpos
-
-        mujoco.mj_forward(model, data)
         viewer.sync()
 
-        # Render gripper camera (available for policy use; displayed via viewer camera menu)
+        # Render both cameras
         gripper_renderer.update_scene(data, camera="gripper_cam")
-        gripper_img = gripper_renderer.render()  # HWC uint8 RGB
+        gripper_img = gripper_renderer.render().copy()
+
+        overview_renderer.update_scene(data, camera="overview_cam")
+        overview_img = overview_renderer.render().copy()
+
+        # Send camera frames non-blocking (drop frame if consumer is behind)
+        try:
+          display_queue.put_nowait([
+              ("Gripper Camera", gripper_img),
+              ("Overview Camera", overview_img),
+          ])
+        except mp.queues.Full:
+          pass
 
         time.sleep(0.01)
   finally:
+    display_queue.put(None)   # stop signal
+    display_proc.join(timeout=2)
     del gripper_renderer
+    del overview_renderer
 
 
 def run_sim_on_scene():
