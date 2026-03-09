@@ -81,13 +81,13 @@ def build_scene_xml(robot_xml_name: str) -> str:
   """)
 
 
-def main(run_dir="runs/tyler_vla", command="pick up the block"):
-  # Simulate robot only
-  # xml_path = so_arm101_mj_description.MJCF_PATH  # robot_descriptions provides this
-  # model = mujoco.MjModel.from_xml_path(xml_path)
-  # data = mujoco.MjData(model)
+def init_robot_without_scene():
+  xml_path = so_arm101_mj_description.MJCF_PATH  # robot_descriptions provides this
+  model = mujoco.MjModel.from_xml_path(xml_path)
+  data = mujoco.MjData(model)
 
-  # Simulate scene
+
+def run_sim_on_scene():
   robot_xml_path = so_arm101_mj_description.MJCF_PATH
   robot_xml_dir = os.path.dirname(robot_xml_path)
   robot_xml_name = os.path.basename(robot_xml_path)
@@ -102,9 +102,26 @@ def main(run_dir="runs/tyler_vla", command="pick up the block"):
 
   try:
     model = mujoco.MjModel.from_xml_path(tmp_path)
-    data = mujoco.MjData(model)
   finally:
     os.unlink(tmp_path)
+
+  # Move the robot's base body onto the table surface (z=0.5).
+  # <include> merges robot bodies directly into worldbody, so we offset them here.
+  # Scene bodies to leave alone:
+  scene_body_names = {"world", "table", "ball", "bowl"}
+  TABLE_TOP_Z = 0.5
+  ROBOT_X = 0.0
+  ROBOT_Y = 0.25   # north edge of table (table spans ±0.3 in Y)
+  for i in range(model.nbody):
+    name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, i)
+    parent = model.body_parentid[i]
+    # Root-level robot bodies: direct children of worldbody (parent==0) not in our scene
+    if parent == 0 and (name or "") not in scene_body_names:
+      model.body_pos[i, 0] = ROBOT_X
+      model.body_pos[i, 1] = ROBOT_Y
+      model.body_pos[i, 2] += TABLE_TOP_Z
+
+  data = mujoco.MjData(model)
 
   # Find which qpos indices correspond to arm joints
   # Commonly: hinge joints are in qpos; gripper may be 1-2 joints depending on model.
@@ -135,6 +152,11 @@ def main(run_dir="runs/tyler_vla", command="pick up the block"):
   # text_ids = tokenizer.encode(command, max_len=16).unsqueeze(0).to(device)
 
   # policy, tokenizer, j_mean, j_std, device = load_policy(run_dir)
+
+  run_dir = "runs/tyler_vla"
+  command = "pick up the ball and place it in the bowl"
+
+  print("Launching simulation...")
 
   with mujoco.viewer.launch_passive(model, data) as viewer:
     # (Optional) start from a neutral pose if you have one
@@ -168,6 +190,14 @@ def main(run_dir="runs/tyler_vla", command="pick up the block"):
       viewer.sync()
 
       time.sleep(0.01)
+
+
+def main():
+  # Simulate robot only
+  # init_robot_without_scene()
+
+  # Simulate scene
+  run_sim_on_scene()
 
 
 if __name__ == "__main__":
