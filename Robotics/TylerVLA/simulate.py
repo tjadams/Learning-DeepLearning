@@ -74,14 +74,14 @@ def _build_scene_xml(robot_xml_name: str) -> str:
         </body>
 
         <!-- Ball: sphere resting on table surface (z = 0.5 + radius = 0.525) -->
-        <body name="ball" pos="0.1 0.05 0.525">
+        <body name="ball" pos="0.1 -0.1 0.525">
           <freejoint/>
           <geom name="ball_geom" type="sphere" size="0.025"
                 material="ball_mat" mass="0.05" condim="4" solimp=".99 .99 .01" solref=".01 1"/>
         </body>
 
         <!-- Bowl: box-wall approximation, placed on table surface -->
-        <body name="bowl" pos="-0.1 0.0 0.5">
+        <body name="bowl" pos="-0.1 -0.1 0.5">
           <freejoint/>
           <geom name="bowl_bottom" type="cylinder" size="0.05 0.005"
                 material="bowl_mat" mass="0.1"/>
