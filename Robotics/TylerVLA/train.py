@@ -12,7 +12,7 @@ from model import DemoDataset, SimpleTokenizer, TylerVLAPolicy
 
 @dataclass
 class TrainConfig:
-    device: str = "cuda" if torch.cuda.is_available() else "mps"
+    device: str = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
     epochs: int = 30
     batch_size: int = 64
     lr: float = 3e-4

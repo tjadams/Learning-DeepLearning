@@ -1,6 +1,11 @@
 # TylerVLA
 From-scratch/vibe-coded implementation of the simplest possible VLA that me and ChatGPT could think of.
 
+## Usage
+1. conda activate pytorch
+- Has robot_descriptions package
+2. mjpython simulate.py
+
 ## Project Goals
 (a) code VLA end-to-end from scratch / vibe-coded 
 (b) train on literally a couple minutes of real-world data from my SO-ARM-101

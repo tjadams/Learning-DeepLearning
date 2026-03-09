@@ -19,7 +19,7 @@ def load_policy(run_dir: str, device: str = None):
     j_mean = norm["mean"].astype(np.float32)
     j_std = norm["std"].astype(np.float32)
 
-    device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+    device = device or ("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
     model = TylerVLAPolicy(vocab_size=ckpt["vocab_size"], num_joints=ckpt["num_joints"])
     model.load_state_dict(ckpt["model_state"])
     model.to(device).eval()
