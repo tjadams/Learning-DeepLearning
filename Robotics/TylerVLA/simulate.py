@@ -13,6 +13,9 @@ from robot_descriptions import so_arm101_mj_description
 
 from inference import load_policy, preprocess_image
 
+# Set to False to hide the cyan/orange camera position markers in the viewer
+SHOW_CAMERA_MARKERS = False
+
 
 def _get_simulated_camera_img(model, data, width=256, height=256):
   """
@@ -27,6 +30,16 @@ def _get_simulated_camera_img(model, data, width=256, height=256):
 
 # Scene simulating pick and place set up I have in my apartment
 def _build_scene_xml(robot_xml_name: str) -> str:
+  overview_marker_xml = """
+        <!-- Cyan marker at overview camera position (0, 0, 1.5) -->
+        <site name="overview_cam_marker" pos="0 0 1.5" size="0.04" material="cam_marker_overview" type="sphere"/>
+        <!-- Stem pointing down to show look direction -->
+        <site name="overview_cam_dir" pos="0 0 1.4" size="0.008 0.1" material="cam_marker_overview" type="cylinder"/>""" if SHOW_CAMERA_MARKERS else ""
+
+  cam_marker_materials = """
+        <material name="cam_marker_overview" rgba="0 1 1 0.9"    emission="1" reflectance="0"/>
+        <material name="cam_marker_gripper"  rgba="1 0.5 0 0.9"  emission="1" reflectance="0"/>""" if SHOW_CAMERA_MARKERS else ""
+
   return textwrap.dedent(f"""\
     <mujoco model="tabletop_scene">
       <option timestep="0.002" gravity="0 0 -9.81"/>
@@ -37,7 +50,7 @@ def _build_scene_xml(robot_xml_name: str) -> str:
         <material name="grid" texture="grid" texrepeat="1 1" texuniform="true" reflectance=".2"/>
         <material name="table_mat" rgba=".8 .6 .4 1"/>
         <material name="ball_mat"  rgba="1 .2 .2 1"/>
-        <material name="bowl_mat"  rgba=".9 .9 .9 1"/>
+        <material name="bowl_mat"  rgba=".9 .9 .9 1"/>{cam_marker_materials}
       </asset>
 
       <worldbody>
@@ -45,7 +58,7 @@ def _build_scene_xml(robot_xml_name: str) -> str:
         <light name="top" pos="0 0 2" dir="0 0 -1" diffuse=".8 .8 .8"/>
 
         <!-- Overview camera (top-down) -->
-        <camera name="overview_cam" pos="0 0 1.5" euler="0 0 0" fovy="60"/>
+        <camera name="overview_cam" pos="0 0 1.5" euler="0 0 0" fovy="60"/>{overview_marker_xml}
 
         <!-- Floor -->
         <geom name="floor" type="plane" size="2 2 .1" material="grid" condim="3"/>
@@ -97,16 +110,25 @@ def _inject_gripper_camera(robot_xml_path: str, out_dir: str) -> str:
   tree = ET.parse(robot_xml_path)
   root = tree.getroot()
 
-  # Find <body name="gripper"> anywhere in the tree
-  gripper_body = root.find(".//{*}body[@name='gripper']") or root.find(".//body[@name='gripper']")
-  if gripper_body is None:
-    raise RuntimeError("Could not find <body name='gripper'> in robot XML. Check body names.")
+  # Find <body name="moving_jaw_so101_v1"> (the jaw tip) anywhere in the tree
+  jaw_body = root.find(".//{*}body[@name='moving_jaw_so101_v1']") or root.find(".//body[@name='moving_jaw_so101_v1']")
+  if jaw_body is None:
+    raise RuntimeError("Could not find <body name='moving_jaw_so101_v1'> in robot XML. Check body names.")
 
-  cam = ET.SubElement(gripper_body, "camera")
+  cam = ET.SubElement(jaw_body, "camera")
   cam.set("name", "gripper_cam")
   cam.set("pos", "0 0 0.05")
   cam.set("euler", "180 0 0")
   cam.set("fovy", "60")
+
+  if SHOW_CAMERA_MARKERS:
+    marker = ET.SubElement(jaw_body, "site")
+    marker.set("name", "gripper_cam_marker")
+    marker.set("pos", "0 0 0.05")
+    marker.set("size", "0.015")
+    marker.set("type", "sphere")
+    marker.set("rgba", "1 0.5 0 0.9")
+    marker.set("material", "cam_marker_gripper")
 
   with tempfile.NamedTemporaryFile(
       suffix=".xml", mode="wb", delete=False, dir=out_dir
