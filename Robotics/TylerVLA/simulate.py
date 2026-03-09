@@ -1,3 +1,4 @@
+import argparse
 import os
 import tempfile
 import textwrap
@@ -15,6 +16,11 @@ from inference import load_policy, preprocess_image
 
 # Set to False to hide the cyan/orange camera position markers in the viewer
 SHOW_CAMERA_MARKERS = False
+
+# Policy settings (used when --policy flag is passed)
+POLICY_RUN_DIR = "runs/pick_place_v1"
+POLICY_COMMAND = "pick up the ball and place it in the bowl"
+POLICY_ALPHA = 0.2  # exponential smoothing: 0=frozen, 1=no smoothing
 
 
 def _get_simulated_camera_img(model, data, width=256, height=256):
@@ -222,40 +228,49 @@ def _display_worker(queue):
   cv2.destroyAllWindows()
 
 
-def run_policy_and_actuate_robot(model, data, device, text_ids, j_std, j_mean, qpos_indices, policy):
-  print("TODO: run policy and actuate robot")
-  # # Render RGB from sim as policy input
-  # rgb = _get_simulated_camera_img(model, data)  # HWC uint8
-  # img_t = preprocess_image(rgb, image_size=128).unsqueeze(0).to(device)
+def run_policy_and_actuate_robot(data, device, text_ids, j_std, j_mean, policy, renderer, q_prev_state):
+  """Render gripper cam, run policy forward pass, write result to data.ctrl."""
+  renderer.update_scene(data, camera="gripper_cam")
+  img_hwc = renderer.render().copy()  # HWC uint8 RGB
 
-  # # Policy predicts normalized joint targets
-  # with torch.no_grad():
-  #   pred_norm = policy(img_t, text_ids).squeeze(0).cpu().numpy()
+  img_t = preprocess_image(img_hwc, image_size=128).unsqueeze(0).to(device)
 
-  # q_des = pred_norm * j_std + j_mean  # de-normalize
+  with torch.no_grad():
+    pred_norm = policy(img_t, text_ids).squeeze(0).cpu().numpy()  # [J] normalized
 
-  # # Write target joints into qpos directly (simple visualization mode)
-  # # If you want physics-consistent motion, use actuators + ctrl instead.
-  # qpos = data.qpos.copy()
-  # for k, qi in enumerate(qpos_indices):
-  #   if k < len(q_des):
-  #     qpos[qi] = q_des[k]
-  # data.qpos[:] = qpos
+  q_des = pred_norm * j_std + j_mean  # denormalize to actual joint units
+
+  # Exponential smoothing to reduce jitter
+  if q_prev_state[0] is None:
+    q_prev_state[0] = data.ctrl[:len(q_des)].copy().astype(np.float32)
+  q_cmd = (1 - POLICY_ALPHA) * q_prev_state[0] + POLICY_ALPHA * q_des
+  q_prev_state[0] = q_cmd
+
+  # Write to actuators (position-controlled joints)
+  num_ctrl = min(len(q_cmd), len(data.ctrl))
+  data.ctrl[:num_ctrl] = q_cmd[:num_ctrl]
 
 
-def _run_viewer_loop(model: mujoco.MjModel, data: mujoco.MjData) -> None:
-  # TODO:
-  # run_dir = "runs/tyler_vla"
-  # command = "pick up the ball and place it in the bowl"
+def _run_viewer_loop(model: mujoco.MjModel, data: mujoco.MjData, run_policy: bool = False) -> None:
+  # Load policy if requested
+  policy = None
+  text_ids = None
+  j_mean = None
+  j_std = None
+  device = None
+  policy_renderer = None
+  q_prev_state = [None]  # mutable container for smoothing state across steps
 
-  # TODO:
-  # qpos_indices = _get_controlled_joint_indices(model)
-  # text_ids = tokenizer.encode(command, max_len=16).unsqueeze(0).to(device)
-  # policy, tokenizer, j_mean, j_std, device = load_policy(run_dir)
+  if run_policy:
+    print(f"Loading policy from {POLICY_RUN_DIR}...")
+    policy, tokenizer, j_mean, j_std, device = load_policy(POLICY_RUN_DIR)
+    text_ids = tokenizer.encode(POLICY_COMMAND, max_len=16).unsqueeze(0).to(device)
+    policy_renderer = mujoco.Renderer(model, height=128, width=128)
+    print("Policy loaded. Running inference loop.")
 
   print("Launching simulation...")
 
-  # Two renderers — one per camera
+  # Two renderers — one per camera (for display)
   gripper_renderer = mujoco.Renderer(model, height=240, width=320)
   overview_renderer = mujoco.Renderer(model, height=240, width=320)
 
@@ -266,28 +281,25 @@ def _run_viewer_loop(model: mujoco.MjModel, data: mujoco.MjData) -> None:
 
   try:
     with mujoco.viewer.launch_passive(model, data) as viewer:
-      # Init position of model
       mujoco.mj_forward(model, data)
 
       while viewer.is_running():
-        # TODO:
-        # run_policy_and_actuate_robot(model, data, device, text_ids, j_std, j_mean, qpos_indices, policy)
+        if run_policy and policy is not None:
+          run_policy_and_actuate_robot(data, device, text_ids, j_std, j_mean, policy, policy_renderer, q_prev_state)
 
-        # Step physics to integrate actuator inputs from viewer Controls panel.
-        # 0.01s wall time / 0.002s timestep = 5 steps per frame (real-time).
+        # Step physics (5 steps × 0.002s = 0.01s simulated per iter = real-time)
         for _ in range(5):
           mujoco.mj_step(model, data)
 
         viewer.sync()
 
-        # Render both cameras
+        # Render both cameras for the display windows
         gripper_renderer.update_scene(data, camera="gripper_cam")
         gripper_img = gripper_renderer.render().copy()
 
         overview_renderer.update_scene(data, camera="overview_cam")
         overview_img = overview_renderer.render().copy()
 
-        # Send camera frames non-blocking (drop frame if consumer is behind)
         try:
           display_queue.put_nowait([
               ("Gripper Camera", gripper_img),
@@ -302,22 +314,28 @@ def _run_viewer_loop(model: mujoco.MjModel, data: mujoco.MjData) -> None:
     display_proc.join(timeout=2)
     del gripper_renderer
     del overview_renderer
+    if policy_renderer is not None:
+      del policy_renderer
 
 
-def run_sim_on_scene():
+def run_sim_on_scene(run_policy: bool = False):
   model = _load_scene_model()
   _place_robot_on_table(model)
 
   data = mujoco.MjData(model)
-  _run_viewer_loop(model, data)
+  _run_viewer_loop(model, data, run_policy=run_policy)
 
 
 def main():
-  # Simulate robot only
-  # init_robot_without_scene()
+  parser = argparse.ArgumentParser(description="TylerVLA simulation")
+  parser.add_argument(
+      "--policy",
+      action="store_true",
+      help=f"Run trained policy from {POLICY_RUN_DIR} (default: teleop mode)",
+  )
+  args = parser.parse_args()
 
-  # Simulate scene
-  run_sim_on_scene()
+  run_sim_on_scene(run_policy=args.policy)
 
 
 if __name__ == "__main__":
