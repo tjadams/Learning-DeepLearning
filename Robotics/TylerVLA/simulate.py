@@ -1,3 +1,6 @@
+import os
+import tempfile
+import textwrap
 import time
 import numpy as np
 import mujoco
@@ -20,10 +23,88 @@ def get_simulated_camera_img(model, data, width=256, height=256):
   return img
 
 
+# Scene simulating pick and place set up I have in my apartment
+def build_scene_xml(robot_xml_name: str) -> str:
+  return textwrap.dedent(f"""\
+    <mujoco model="tabletop_scene">
+      <option timestep="0.002" gravity="0 0 -9.81"/>
+
+      <asset>
+        <texture name="grid" type="2d" builtin="checker" width="512" height="512"
+                 rgb1=".1 .2 .3" rgb2=".2 .3 .4"/>
+        <material name="grid" texture="grid" texrepeat="1 1" texuniform="true" reflectance=".2"/>
+        <material name="table_mat" rgba=".8 .6 .4 1"/>
+        <material name="ball_mat"  rgba="1 .2 .2 1"/>
+        <material name="bowl_mat"  rgba=".9 .9 .9 1"/>
+      </asset>
+
+      <worldbody>
+        <!-- Lighting -->
+        <light name="top" pos="0 0 2" dir="0 0 -1" diffuse=".8 .8 .8"/>
+
+        <!-- Floor -->
+        <geom name="floor" type="plane" size="2 2 .1" material="grid" condim="3"/>
+
+        <!-- Table: top surface at z=0.5 -->
+        <body name="table" pos="0 0 0.25">
+          <geom name="table_top" type="box" size="0.4 0.3 0.025"
+                pos="0 0 0.225" material="table_mat" condim="3"/>
+          <geom name="leg_fl" type="cylinder" size="0.02 0.225" pos=" 0.35  0.25 0" material="table_mat"/>
+          <geom name="leg_fr" type="cylinder" size="0.02 0.225" pos=" 0.35 -0.25 0" material="table_mat"/>
+          <geom name="leg_bl" type="cylinder" size="0.02 0.225" pos="-0.35  0.25 0" material="table_mat"/>
+          <geom name="leg_br" type="cylinder" size="0.02 0.225" pos="-0.35 -0.25 0" material="table_mat"/>
+        </body>
+
+        <!-- Ball: sphere resting on table surface (z = 0.5 + radius = 0.525) -->
+        <body name="ball" pos="0.1 0.05 0.525">
+          <freejoint/>
+          <geom name="ball_geom" type="sphere" size="0.025"
+                material="ball_mat" mass="0.05" condim="4" solimp=".99 .99 .01" solref=".01 1"/>
+        </body>
+
+        <!-- Bowl: box-wall approximation, placed on table surface -->
+        <body name="bowl" pos="-0.1 0.0 0.5">
+          <freejoint/>
+          <geom name="bowl_bottom" type="cylinder" size="0.05 0.005"
+                material="bowl_mat" mass="0.1"/>
+          <geom name="bowl_wall_f" type="box" size="0.005 0.05 0.02" pos=" 0.05 0 0.02" material="bowl_mat" mass="0.02"/>
+          <geom name="bowl_wall_b" type="box" size="0.005 0.05 0.02" pos="-0.05 0 0.02" material="bowl_mat" mass="0.02"/>
+          <geom name="bowl_wall_l" type="box" size="0.05 0.005 0.02" pos="0  0.05 0.02" material="bowl_mat" mass="0.02"/>
+          <geom name="bowl_wall_r" type="box" size="0.05 0.005 0.02" pos="0 -0.05 0.02" material="bowl_mat" mass="0.02"/>
+        </body>
+      </worldbody>
+
+      <!-- Robot arm: include by filename only (temp file lives in same dir) -->
+      <include file="{robot_xml_name}"/>
+
+    </mujoco>
+  """)
+
+
 def main(run_dir="runs/tyler_vla", command="pick up the block"):
-  xml_path = so_arm101_mj_description.MJCF_PATH  # robot_descriptions provides this
-  model = mujoco.MjModel.from_xml_path(xml_path)
-  data = mujoco.MjData(model)
+  # Simulate robot only
+  # xml_path = so_arm101_mj_description.MJCF_PATH  # robot_descriptions provides this
+  # model = mujoco.MjModel.from_xml_path(xml_path)
+  # data = mujoco.MjData(model)
+
+  # Simulate scene
+  robot_xml_path = so_arm101_mj_description.MJCF_PATH
+  robot_xml_dir = os.path.dirname(robot_xml_path)
+  robot_xml_name = os.path.basename(robot_xml_path)
+  scene_xml = build_scene_xml(robot_xml_name)
+
+  # Write temp file into the robot's directory so <include file="name.xml"/> resolves correctly.
+  with tempfile.NamedTemporaryFile(
+      suffix=".xml", mode="w", delete=False, dir=robot_xml_dir
+  ) as f:
+    f.write(scene_xml)
+    tmp_path = f.name
+
+  try:
+    model = mujoco.MjModel.from_xml_path(tmp_path)
+    data = mujoco.MjData(model)
+  finally:
+    os.unlink(tmp_path)
 
   # Find which qpos indices correspond to arm joints
   # Commonly: hinge joints are in qpos; gripper may be 1-2 joints depending on model.
@@ -37,7 +118,7 @@ def main(run_dir="runs/tyler_vla", command="pick up the block"):
 
   print("Joints in model:")
   for n, adr in zip(joint_names, joint_qposadr):
-    print(f"  {n:30s} qpos_adr={adr}")
+    print(f"  {(n or '<unnamed>'):30s} qpos_adr={adr}")
 
   # --- You must decide which joints your policy predicts ---
   # For example, if your SO-ARM-101 has 6 joints + gripper, pick those here by name.

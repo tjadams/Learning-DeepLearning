@@ -4,6 +4,7 @@ Python/PyTorch/data/
 Python/PyTorch/artifacts/
 Python/PyTorch/MNIST/mnist_cnn.pt
 ai/data/
+MUJOCO_LOG.TXT
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
