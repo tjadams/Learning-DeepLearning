@@ -62,3 +62,17 @@ Load policy once before the loop, pass into the loop.
 1. Run `mjpython collect_demos.py` → teleop robot to complete pick-and-place → saves `demos/demo_001.npz`
 2. Run `python train.py` → loss converges → saves `runs/pick_place_v1/model.pt`
 3. Run `mjpython simulate.py` → policy drives robot → robot picks up ball, places in bowl
+
+End-to-end pipeline
+
+  # 1. Collect 5-10 demos (teleop via viewer sliders)
+  mjpython collect_demos.py
+
+  # 2. Merge all demos
+  mjpython collect_demos.py --merge
+
+  # 3. Train
+  python -c "from train import train; train('demos/merged.npz', 'demos/merged.json', 'runs/pick_place_v1')"
+
+  # 4. Run policy in sim
+  mjpython simulate.py --policy
