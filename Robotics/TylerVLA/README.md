@@ -1,5 +1,8 @@
 # TylerVLA
-From-scratch/vibe-coded implementation of the simplest possible VLA that me and ChatGPT could think of.
+From-scratch/vibe-coded implementation of the simplest possible VLA that me (and ChatGPT/Claude) could think of. 
+
+## Motivation
+The idea is to use very minimal training data (ideally 5-10 training episodes), simulate, and then deploy to a real SO-ARM-101 robot arm. Other models tried which were quite complex for a Robotics/deep-learning beginner, or required too much training data: OpenVLA, ACT.
 
 ## Usage - sim
 1. conda activate pytorch
