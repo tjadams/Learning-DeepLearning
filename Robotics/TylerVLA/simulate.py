@@ -2,6 +2,7 @@ import os
 import tempfile
 import textwrap
 import time
+import xml.etree.ElementTree as ET
 import numpy as np
 import mujoco
 import mujoco.viewer
@@ -41,6 +42,9 @@ def _build_scene_xml(robot_xml_name: str) -> str:
       <worldbody>
         <!-- Lighting -->
         <light name="top" pos="0 0 2" dir="0 0 -1" diffuse=".8 .8 .8"/>
+
+        <!-- Overview camera (top-down) -->
+        <camera name="overview_cam" pos="0 0 1.5" euler="0 0 0" fovy="60"/>
 
         <!-- Floor -->
         <geom name="floor" type="plane" size="2 2 .1" material="grid" condim="3"/>
@@ -87,23 +91,51 @@ def init_robot_without_scene():
   data = mujoco.MjData(model)
 
 
+def _inject_gripper_camera(robot_xml_path: str, out_dir: str) -> str:
+  """Parse robot XML, inject a gripper camera, and write to a temp file. Returns temp path."""
+  tree = ET.parse(robot_xml_path)
+  root = tree.getroot()
+
+  # Find <body name="gripper"> anywhere in the tree
+  gripper_body = root.find(".//{*}body[@name='gripper']") or root.find(".//body[@name='gripper']")
+  if gripper_body is None:
+    raise RuntimeError("Could not find <body name='gripper'> in robot XML. Check body names.")
+
+  cam = ET.SubElement(gripper_body, "camera")
+  cam.set("name", "gripper_cam")
+  cam.set("pos", "0 0 0.05")
+  cam.set("euler", "180 0 0")
+  cam.set("fovy", "60")
+
+  with tempfile.NamedTemporaryFile(
+      suffix=".xml", mode="wb", delete=False, dir=out_dir
+  ) as f:
+    tree.write(f, encoding="utf-8", xml_declaration=True)
+    tmp_robot_path = f.name
+
+  return tmp_robot_path
+
+
 def _load_scene_model() -> mujoco.MjModel:
   robot_xml_path = so_arm101_mj_description.MJCF_PATH
   robot_xml_dir = os.path.dirname(robot_xml_path)
-  robot_xml_name = os.path.basename(robot_xml_path)
-  scene_xml = _build_scene_xml(robot_xml_name)
 
-  # Write temp file into the robot's directory so <include file="name.xml"/> resolves correctly.
+  tmp_robot_path = _inject_gripper_camera(robot_xml_path, robot_xml_dir)
+  tmp_robot_name = os.path.basename(tmp_robot_path)
+  scene_xml = _build_scene_xml(tmp_robot_name)
+
+  # Write scene temp file into the robot's directory so <include file="name.xml"/> resolves correctly.
   with tempfile.NamedTemporaryFile(
       suffix=".xml", mode="w", delete=False, dir=robot_xml_dir
   ) as f:
     f.write(scene_xml)
-    tmp_path = f.name
+    tmp_scene_path = f.name
 
   try:
-    model = mujoco.MjModel.from_xml_path(tmp_path)
+    model = mujoco.MjModel.from_xml_path(tmp_scene_path)
   finally:
-    os.unlink(tmp_path)
+    os.unlink(tmp_scene_path)
+    os.unlink(tmp_robot_path)
 
   return model
 
@@ -164,38 +196,47 @@ def _run_viewer_loop(model: mujoco.MjModel, data: mujoco.MjData) -> None:
 
   print("Launching simulation...")
 
-  with mujoco.viewer.launch_passive(model, data) as viewer:
-    # (Optional) start from a neutral pose if you have one
-    mujoco.mj_forward(model, data)
+  gripper_renderer = mujoco.Renderer(model, height=240, width=320)
 
-    last = time.time()
-    while viewer.is_running():
-      now = time.time()
-      dt = now - last
-      last = now
-
-      # # Render RGB from sim as policy input
-      # rgb = _get_simulated_camera_img(model, data)  # HWC uint8
-      # img_t = preprocess_image(rgb, image_size=128).unsqueeze(0).to(device)
-
-      # # Policy predicts normalized joint targets
-      # with torch.no_grad():
-      #   pred_norm = policy(img_t, text_ids).squeeze(0).cpu().numpy()
-
-      # q_des = pred_norm * j_std + j_mean  # de-normalize
-
-      # # Write target joints into qpos directly (simple visualization mode)
-      # # If you want physics-consistent motion, use actuators + ctrl instead.
-      # qpos = data.qpos.copy()
-      # for k, qi in enumerate(qpos_indices):
-      #   if k < len(q_des):
-      #     qpos[qi] = q_des[k]
-      # data.qpos[:] = qpos
-
+  try:
+    with mujoco.viewer.launch_passive(model, data) as viewer:
+      # (Optional) start from a neutral pose if you have one
       mujoco.mj_forward(model, data)
-      viewer.sync()
 
-      time.sleep(0.01)
+      last = time.time()
+      while viewer.is_running():
+        now = time.time()
+        dt = now - last
+        last = now
+
+        # # Render RGB from sim as policy input
+        # rgb = _get_simulated_camera_img(model, data)  # HWC uint8
+        # img_t = preprocess_image(rgb, image_size=128).unsqueeze(0).to(device)
+
+        # # Policy predicts normalized joint targets
+        # with torch.no_grad():
+        #   pred_norm = policy(img_t, text_ids).squeeze(0).cpu().numpy()
+
+        # q_des = pred_norm * j_std + j_mean  # de-normalize
+
+        # # Write target joints into qpos directly (simple visualization mode)
+        # # If you want physics-consistent motion, use actuators + ctrl instead.
+        # qpos = data.qpos.copy()
+        # for k, qi in enumerate(qpos_indices):
+        #   if k < len(q_des):
+        #     qpos[qi] = q_des[k]
+        # data.qpos[:] = qpos
+
+        mujoco.mj_forward(model, data)
+        viewer.sync()
+
+        # Render gripper camera (available for policy use; displayed via viewer camera menu)
+        gripper_renderer.update_scene(data, camera="gripper_cam")
+        gripper_img = gripper_renderer.render()  # HWC uint8 RGB
+
+        time.sleep(0.01)
+  finally:
+    del gripper_renderer
 
 
 def run_sim_on_scene():
