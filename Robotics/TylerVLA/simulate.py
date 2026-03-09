@@ -12,7 +12,7 @@ from robot_descriptions import so_arm101_mj_description
 from inference import load_policy, preprocess_image
 
 
-def get_simulated_camera_img(model, data, width=256, height=256):
+def _get_simulated_camera_img(model, data, width=256, height=256):
   """
   Minimal offscreen render to RGB.
   For a real pipeline, you can use a wrist camera model or attach a MuJoCo camera.
@@ -24,7 +24,7 @@ def get_simulated_camera_img(model, data, width=256, height=256):
 
 
 # Scene simulating pick and place set up I have in my apartment
-def build_scene_xml(robot_xml_name: str) -> str:
+def _build_scene_xml(robot_xml_name: str) -> str:
   return textwrap.dedent(f"""\
     <mujoco model="tabletop_scene">
       <option timestep="0.002" gravity="0 0 -9.81"/>
@@ -87,11 +87,11 @@ def init_robot_without_scene():
   data = mujoco.MjData(model)
 
 
-def run_sim_on_scene():
+def _load_scene_model() -> mujoco.MjModel:
   robot_xml_path = so_arm101_mj_description.MJCF_PATH
   robot_xml_dir = os.path.dirname(robot_xml_path)
   robot_xml_name = os.path.basename(robot_xml_path)
-  scene_xml = build_scene_xml(robot_xml_name)
+  scene_xml = _build_scene_xml(robot_xml_name)
 
   # Write temp file into the robot's directory so <include file="name.xml"/> resolves correctly.
   with tempfile.NamedTemporaryFile(
@@ -105,10 +105,13 @@ def run_sim_on_scene():
   finally:
     os.unlink(tmp_path)
 
+  return model
+
+
+def _place_robot_on_table(model: mujoco.MjModel) -> None:
   # Move the robot's base body onto the table surface (z=0.5).
   # <include> merges robot bodies directly into worldbody, so we offset them here.
-  # Scene bodies to leave alone:
-  scene_body_names = {"world", "table", "ball", "bowl"}
+  SCENE_BODY_NAMES = {"world", "table", "ball", "bowl"}
   TABLE_TOP_Z = 0.5
   ROBOT_X = 0.0
   ROBOT_Y = 0.25   # north edge of table (table spans ±0.3 in Y)
@@ -116,16 +119,15 @@ def run_sim_on_scene():
     name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, i)
     parent = model.body_parentid[i]
     # Root-level robot bodies: direct children of worldbody (parent==0) not in our scene
-    if parent == 0 and (name or "") not in scene_body_names:
+    if parent == 0 and (name or "") not in SCENE_BODY_NAMES:
       model.body_pos[i, 0] = ROBOT_X
       model.body_pos[i, 1] = ROBOT_Y
       model.body_pos[i, 2] += TABLE_TOP_Z
 
-  data = mujoco.MjData(model)
 
-  # Find which qpos indices correspond to arm joints
-  # Commonly: hinge joints are in qpos; gripper may be 1-2 joints depending on model.
-  # A robust way is to list joint names and map the ones you control.
+def _get_controlled_joint_indices(model: mujoco.MjModel) -> list[int]:
+  # Find which qpos indices correspond to arm joints.
+  # Hinge joints are in qpos; gripper may be 1-2 joints depending on model.
   joint_names = []
   joint_qposadr = []
   for j in range(model.njnt):
@@ -149,12 +151,16 @@ def run_sim_on_scene():
   qpos_indices = [name_to_adr[n] for n in controlled_joint_names if n in name_to_adr]
   assert len(qpos_indices) > 0, "Could not find controlled joints. Update controlled_joint_names."
 
+  return qpos_indices
+
+
+def _run_viewer_loop(model: mujoco.MjModel, data: mujoco.MjData) -> None:
+  # run_dir = "runs/tyler_vla"
+  # command = "pick up the ball and place it in the bowl"
+
+  # qpos_indices = _get_controlled_joint_indices(model)
   # text_ids = tokenizer.encode(command, max_len=16).unsqueeze(0).to(device)
-
   # policy, tokenizer, j_mean, j_std, device = load_policy(run_dir)
-
-  run_dir = "runs/tyler_vla"
-  command = "pick up the ball and place it in the bowl"
 
   print("Launching simulation...")
 
@@ -169,7 +175,7 @@ def run_sim_on_scene():
       last = now
 
       # # Render RGB from sim as policy input
-      # rgb = get_simulated_camera_img(model, data)  # HWC uint8
+      # rgb = _get_simulated_camera_img(model, data)  # HWC uint8
       # img_t = preprocess_image(rgb, image_size=128).unsqueeze(0).to(device)
 
       # # Policy predicts normalized joint targets
@@ -190,6 +196,14 @@ def run_sim_on_scene():
       viewer.sync()
 
       time.sleep(0.01)
+
+
+def run_sim_on_scene():
+  model = _load_scene_model()
+  _place_robot_on_table(model)
+
+  data = mujoco.MjData(model)
+  _run_viewer_loop(model, data)
 
 
 def main():
