@@ -273,6 +273,11 @@ def _run_viewer_loop(model: mujoco.MjModel, data: mujoco.MjData) -> None:
         # TODO:
         # run_policy_and_actuate_robot(model, data, device, text_ids, j_std, j_mean, qpos_indices, policy)
 
+        # Step physics to integrate actuator inputs from viewer Controls panel.
+        # 0.01s wall time / 0.002s timestep = 5 steps per frame (real-time).
+        for _ in range(5):
+          mujoco.mj_step(model, data)
+
         viewer.sync()
 
         # Render both cameras
