@@ -4,6 +4,24 @@ From-scratch/vibe-coded implementation of the simplest possible VLA that me (and
 ## Motivation
 The idea is to use very minimal training data (ideally 5-10 training episodes), simulate, and then deploy to a real SO-ARM-101 robot arm. Other models tried which were quite complex for a Robotics/deep-learning beginner, or required too much training data: OpenVLA, ACT.
 
+## Usage - Real Robot (SO-ARM-101 via LeRobot)
+
+Requires `conda activate lerobot` and the follower arm connected via USB.
+
+```bash
+# Test connection (reads joints + camera frame, then disconnects)
+python test_robot_connection.py
+
+# Run trained policy on the real arm at 10 Hz
+python inference.py
+```
+
+Hardware config (from SO-ARM-101 setup):
+- Follower port: `/dev/tty.usbmodem5A460830061`
+- Camera: OpenCV index 0
+
+inference.py connects to the arm via LeRobot's `SO101Follower`, runs the policy loop with exponential smoothing (alpha=0.2), and disconnects on exit.
+
 ## Usage - sim
 1. conda activate pytorch
 - Has robot_descriptions package
