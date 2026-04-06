@@ -22,6 +22,38 @@ Hardware config (from SO-ARM-101 setup):
 
 inference.py connects to the arm via LeRobot's `SO101Follower`, runs the policy loop with exponential smoothing (alpha=0.2), and disconnects on exit.
 
+## Data Collection & Training (real robot)
+
+1. Record teleoperation demos via LeRobot (run as many times as needed):
+```bash
+conda activate lerobot
+python -m lerobot.record \
+    --robot.type=so101_follower \
+    --robot.port=/dev/tty.usbmodem5A460830061 \
+    --robot.id=my_awesome_follower_arm \
+    --robot.cameras="{ front: {type: opencv, index_or_path: 0, width: 1920, height: 1080, fps: 5}}" \
+    --teleop.type=so101_leader \
+    --teleop.port=/dev/tty.usbmodem5A460825831 \
+    --teleop.id=my_awesome_leader_arm \
+    --display_data=true \
+    --dataset.repo_id=tylervla/pick-place \
+    --dataset.num_episodes=1 \
+    --dataset.single_task="pick up the ball and place it in the bowl"
+```
+Data is stored locally at `~/.cache/huggingface/lerobot/<repo_id>/`.
+
+2. Convert LeRobot dataset to TylerVLA format (one-time, after all demos collected):
+```bash
+python convert_lerobot.py --dataset ~/.cache/huggingface/lerobot/tylervla/pick-place --out demos/
+```
+Produces `demos/merged.npz` + `demos/merged.json`. Re-run if you collect more demos.
+
+3. Train:
+```bash
+conda activate pytorch
+python -c "from train import train; train('demos/merged.npz', 'demos/merged.json', 'runs/pick_place_v1')"
+```
+
 ## Usage - sim
 1. conda activate pytorch
 - Has robot_descriptions package
