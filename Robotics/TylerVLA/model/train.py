@@ -7,7 +7,7 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from model import DemoDataset, SimpleTokenizer, TylerVLAPolicy
+from model.model import DemoDataset, SimpleTokenizer, TylerVLAPolicy
 
 
 @dataclass
@@ -135,5 +135,5 @@ def train(
 
 if __name__ == "__main__":
     # Example:
-    # python train.py -- you'll likely call train() with your data paths
+    # python -c "from model import train; train('demos/merged.npz', 'demos/merged.json', 'runs/pick_place_v1')"
     pass

@@ -6,10 +6,7 @@ Usage:
     mjpython collect_demos.py --merge      # merge all demos/ into demos/merged.npz + merged.json
 
 After collecting demos, train with:
-    python train.py  (edit the bottom of train.py to point at demos/merged.npz and demos/merged.json)
-
-Or call directly:
-    python -c "from train import train; train('demos/merged.npz', 'demos/merged.json', 'runs/pick_place_v1')"
+    python -c "from model import train; train('demos/merged.npz', 'demos/merged.json', 'runs/pick_place_v1')"
 """
 
 import argparse
@@ -136,7 +133,7 @@ def merge_demos():
         json.dump({"text": all_texts}, f)
 
     print(f"Merged {len(npz_files)} demos: {len(all_texts)} total frames -> {out_npz}")
-    print(f"To train: python -c \"from train import train; train('{out_npz}', '{out_json}', 'runs/pick_place_v1')\"")
+    print(f"To train: python -c \"from model import train; train('{out_npz}', '{out_json}', 'runs/pick_place_v1')\"")
 
 
 def main():

@@ -17,7 +17,7 @@ a physical robot.
 
 ```
 1. Teleop in MuJoCo → .npz + .json 
-2. train.py → model.pt
+2. model/train.py → model.pt
 3. simulate.py (policy loop) with model.pt
 ```
 
@@ -38,13 +38,13 @@ A script that:
 - Record from `gripper_cam` only (what the policy "sees") — not the overview camera
 - Collect at 20 Hz (record every ~2nd frame at 100 Hz physics)
 
-### Step 2: Train (`train.py`)
+### Step 2: Train (`model/train.py`)
 
 Already complete — no changes needed. Just run:
 ```bash
-python train.py --data demos/ --output runs/pick_place_v1
+python -c "from model import train; train('demos/merged.npz', 'demos/merged.json', 'runs/pick_place_v1')"
 ```
-train.py expects `.npz` files (images + joints) and `.json` files (texts) in the data dir.
+`model/train.py` expects `.npz` files (images + joints) and `.json` files (texts) in the data dir.
 
 ### Step 3: Wire Inference into Simulation (`simulate.py`)
 
@@ -60,7 +60,7 @@ Load policy once before the loop, pass into the loop.
 ## Verification (End-to-End)
 
 1. Run `mjpython collect_demos.py` → teleop robot to complete pick-and-place → saves `demos/demo_001.npz`
-2. Run `python train.py` → loss converges → saves `runs/pick_place_v1/model.pt`
+2. Run training → loss converges → saves `runs/pick_place_v1/model.pt`
 3. Run `mjpython simulate.py` → policy drives robot → robot picks up ball, places in bowl
 
 End-to-end pipeline
@@ -72,7 +72,7 @@ End-to-end pipeline
   mjpython collect_demos.py --merge
 
   # 3. Train
-  python -c "from train import train; train('demos/merged.npz', 'demos/merged.json', 'runs/pick_place_v1')"
+  python -c "from model import train; train('demos/merged.npz', 'demos/merged.json', 'runs/pick_place_v1')"
 
   # 4. Run policy in sim
   mjpython simulate.py --policy

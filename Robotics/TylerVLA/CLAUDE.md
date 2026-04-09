@@ -20,7 +20,7 @@ mjpython collect_demos.py
 mjpython collect_demos.py --merge
 
 # Train policy
-python -c "from train import train; train('demos/merged.npz', 'demos/merged.json', 'runs/pick_place_v1')"
+python -c "from model import train; train('demos/merged.npz', 'demos/merged.json', 'runs/pick_place_v1')"
 
 # Manual simulation
 mjpython simulate.py
@@ -29,7 +29,7 @@ mjpython simulate.py
 mjpython simulate.py --policy
 ```
 
-## Architecture (`model.py`)
+## Architecture (`model/model.py`)
 
 - `SimpleTokenizer` — whitespace vocab tokenizer
 - `TinyVisionEncoder` — tiny CNN (3→32→64→128 channels), output 128D
@@ -42,8 +42,8 @@ Only the MLP policy head trains; encoders are frozen.
 
 | File | Purpose |
 |------|---------|
-| `model.py` | Model classes + `DemoDataset` |
-| `train.py` | Training loop; saves `runs/*/model.pt`, `tokenizer.json`, `joint_norm.npz` |
+| `model/model.py` | Model classes + `DemoDataset` |
+| `model/train.py` | Training loop; saves `runs/*/model.pt`, `tokenizer.json`, `joint_norm.npz` |
 | `collect_demos.py` | MuJoCo teleoperation data collection |
 | `simulate.py` | Simulation environment (pick-and-place, ball→bowl); configure via constants at top |
 | `inference.py` | Policy loading + real-robot deployment stubs |

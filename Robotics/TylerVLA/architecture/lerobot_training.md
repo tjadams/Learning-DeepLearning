@@ -45,7 +45,7 @@ demos/merged.json   # {"text": ["command", "command", ...]}  length N
 4. Save as `.npz` + `.json`
 
 ## Normalization chain
-LeRobot normalized joints (-100..+100) → `train.py` further normalizes (subtract mean, divide by std) → model predicts in normalized space → `inference.py` denormalizes (`pred * std + mean`) back to LeRobot space → `send_action()` accepts LeRobot normalized values.
+LeRobot normalized joints (-100..+100) → `model/train.py` further normalizes (subtract mean, divide by std) → model predicts in normalized space → `inference.py` denormalizes (`pred * std + mean`) back to LeRobot space → `send_action()` accepts LeRobot normalized values.
 
 No additional conversion needed between collection and inference.
 

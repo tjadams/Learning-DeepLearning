@@ -51,7 +51,7 @@ Produces `demos/merged.npz` + `demos/merged.json`. Re-run if you collect more de
 3. Train:
 ```bash
 conda activate pytorch
-python -c "from train import train; train('demos/merged.npz', 'demos/merged.json', 'runs/pick_place_v1')"
+python -c "from model import train; train('demos/merged.npz', 'demos/merged.json', 'runs/pick_place_v1')"
 ```
 
 ## Usage - sim
