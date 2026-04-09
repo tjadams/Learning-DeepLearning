@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from convert_lerobot import convert_episode, decode_video_frames, load_episodes, load_tasks
+from real_robot.convert_lerobot import convert_episode, decode_video_frames, load_episodes, load_tasks
 
 NUM_FRAMES = 10
 NUM_JOINTS = 6

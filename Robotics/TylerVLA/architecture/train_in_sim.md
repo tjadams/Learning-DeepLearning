@@ -21,7 +21,7 @@ a physical robot.
 3. simulate.py (policy loop) with model.pt
 ```
 
-### Step 1: Collect Demonstration Data (`collect_demos.py`)
+### Step 1: Collect Demonstration Data (`simulation/collect_demos.py`)
 A script that:
 - Launches the MuJoCo scene (reuses `_load_scene_model`, `_place_robot_on_table`)
 - Lets user teleoperate the robot via the viewer Controls panel (drag sliders)
@@ -46,7 +46,7 @@ python -c "from model import train; train('demos/merged.npz', 'demos/merged.json
 ```
 `model/train.py` expects `.npz` files (images + joints) and `.json` files (texts) in the data dir.
 
-### Step 3: Wire Inference into Simulation (`simulate.py`)
+### Step 3: Wire Inference into Simulation (`simulation/simulate.py`)
 
 Implement `run_policy_and_actuate_robot` (currently a stub at line 225) to:
 1. Render `gripper_cam` → preprocess to 128×128
@@ -66,13 +66,13 @@ Load policy once before the loop, pass into the loop.
 End-to-end pipeline
 
   # 1. Collect 5-10 demos (teleop via viewer sliders)
-  mjpython collect_demos.py
+  mjpython simulation/collect_demos.py
 
   # 2. Merge all demos
-  mjpython collect_demos.py --merge
+  mjpython simulation/collect_demos.py --merge
 
   # 3. Train
   python -c "from model import train; train('demos/merged.npz', 'demos/merged.json', 'runs/pick_place_v1')"
 
   # 4. Run policy in sim
-  mjpython simulate.py --policy
+  mjpython simulation/simulate.py --policy

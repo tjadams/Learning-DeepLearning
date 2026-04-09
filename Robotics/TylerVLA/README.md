@@ -13,14 +13,14 @@ Requires `conda activate lerobot` and the follower arm connected via USB.
 python test_robot_connection.py
 
 # Run trained policy on the real arm at 10 Hz
-python inference.py
+python real_robot/inference.py
 ```
 
 Hardware config (from SO-ARM-101 setup):
 - Follower port: `/dev/tty.usbmodem5A460830061`
 - Camera: OpenCV index 0
 
-inference.py connects to the arm via LeRobot's `SO101Follower`, runs the policy loop with exponential smoothing (alpha=0.2), and disconnects on exit.
+`real_robot/inference.py` connects to the arm via LeRobot's `SO101Follower`, runs the policy loop with exponential smoothing (alpha=0.2), and disconnects on exit.
 
 ## Data Collection & Training (real robot)
 
@@ -44,7 +44,7 @@ Data is stored locally at `~/.cache/huggingface/lerobot/<repo_id>/`.
 
 2. Convert LeRobot dataset to TylerVLA format (one-time, after all demos collected):
 ```bash
-python convert_lerobot.py --dataset ~/.cache/huggingface/lerobot/tylervla/pick-place --out demos/
+python real_robot/convert_lerobot.py --dataset ~/.cache/huggingface/lerobot/tylervla/pick-place --out demos/
 ```
 Produces `demos/merged.npz` + `demos/merged.json`. Re-run if you collect more demos.
 
@@ -58,7 +58,7 @@ python -c "from model import train; train('demos/merged.npz', 'demos/merged.json
 1. conda activate pytorch
 - Has robot_descriptions package
 2. cd /Users/tjadams/Coding/Learning-DeepLearning/Robotics/TylerVLA/
-3. mjpython simulate.py
+3. mjpython simulation/simulate.py
 
 ## Project Goals
 (a) code VLA end-to-end from scratch / vibe-coded 

@@ -2,8 +2,8 @@
 Teleoperation data collection for TylerVLA.
 
 Usage:
-    mjpython collect_demos.py              # collect a new demo (teleop via viewer sliders)
-    mjpython collect_demos.py --merge      # merge all demos/ into demos/merged.npz + merged.json
+    mjpython simulation/collect_demos.py              # collect a new demo (teleop via viewer sliders)
+    mjpython simulation/collect_demos.py --merge      # merge all demos/ into demos/merged.npz + merged.json
 
 After collecting demos, train with:
     python -c "from model import train; train('demos/merged.npz', 'demos/merged.json', 'runs/pick_place_v1')"
@@ -18,7 +18,7 @@ import numpy as np
 import mujoco
 import mujoco.viewer
 
-from simulate import _load_scene_model, _place_robot_on_table
+from simulation.simulate import _load_scene_model, _place_robot_on_table
 
 DEMOS_DIR = "demos"
 COMMAND = "pick up the ball and place it in the bowl"

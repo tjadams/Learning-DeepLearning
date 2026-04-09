@@ -12,7 +12,7 @@ import torch
 
 from robot_descriptions import so_arm101_mj_description
 
-from inference import load_policy, preprocess_image
+from model_utils import load_policy, preprocess_image
 
 # Set to False to hide the cyan/orange camera position markers in the viewer
 SHOW_CAMERA_MARKERS = False

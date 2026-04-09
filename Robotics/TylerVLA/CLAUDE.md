@@ -14,19 +14,19 @@ Use `mjpython` (not plain `python`) for any script that imports `mujoco`.
 
 ```bash
 # Collect a single teleoperation demo
-mjpython collect_demos.py
+mjpython simulation/collect_demos.py
 
 # Merge all demos/ into demos/merged.npz + demos/merged.json
-mjpython collect_demos.py --merge
+mjpython simulation/collect_demos.py --merge
 
 # Train policy
 python -c "from model import train; train('demos/merged.npz', 'demos/merged.json', 'runs/pick_place_v1')"
 
 # Manual simulation
-mjpython simulate.py
+mjpython simulation/simulate.py
 
 # Run trained policy in sim
-mjpython simulate.py --policy
+mjpython simulation/simulate.py --policy
 ```
 
 ## Architecture (`model/model.py`)
@@ -44,9 +44,11 @@ Only the MLP policy head trains; encoders are frozen.
 |------|---------|
 | `model/model.py` | Model classes + `DemoDataset` |
 | `model/train.py` | Training loop; saves `runs/*/model.pt`, `tokenizer.json`, `joint_norm.npz` |
-| `collect_demos.py` | MuJoCo teleoperation data collection |
-| `simulate.py` | Simulation environment (pick-and-place, ball→bowl); configure via constants at top |
-| `inference.py` | Policy loading + real-robot deployment stubs |
+| `model_utils/policy_loader.py` | `load_policy` + `preprocess_image` — shared by sim and real robot |
+| `simulation/collect_demos.py` | MuJoCo teleoperation data collection |
+| `simulation/simulate.py` | Simulation environment (pick-and-place, ball→bowl); configure via constants at top |
+| `real_robot/inference.py` | Real-robot deployment (SO-ARM-101 via LeRobot) |
+| `real_robot/convert_lerobot.py` | Convert LeRobot datasets to TylerVLA `.npz`/`.json` format |
 | `tests/` | Unit and smoke tests |
 
 ## Data Format
@@ -54,7 +56,7 @@ Only the MLP policy head trains; encoders are frozen.
 - `.npz`: `images` uint8 [N, 128, 128, 3], `joints` float32 [N, 6]
 - `.json`: text command list, length N
 
-## Key Constants in `simulate.py`
+## Key Constants in `simulation/simulate.py`
 
 `POLICY_RUN_DIR`, `POLICY_COMMAND`, `POLICY_ALPHA`
 
@@ -68,4 +70,4 @@ Auto-detects CUDA → MPS → CPU.
 python -m pytest tests/
 ```
 
-Validation loss is logged during training. Smoke test: `mjpython simulate.py --policy`.
+Validation loss is logged during training. Smoke test: `mjpython simulation/simulate.py --policy`.

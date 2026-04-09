@@ -11,8 +11,8 @@ See also:
 
 Usage:
     conda activate lerobot
-    python convert_lerobot.py --dataset ~/.cache/huggingface/lerobot/abc2/so-arm-101 --out demos/
-    python convert_lerobot.py --dataset ~/.cache/huggingface/lerobot/tylervla/pick-place --out demos/
+    python real_robot/convert_lerobot.py --dataset ~/.cache/huggingface/lerobot/abc2/so-arm-101 --out demos/
+    python real_robot/convert_lerobot.py --dataset ~/.cache/huggingface/lerobot/tylervla/pick-place --out demos/
 """
 
 import argparse

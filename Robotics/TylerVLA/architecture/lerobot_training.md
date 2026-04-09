@@ -1,7 +1,7 @@
 # Decision: Use LeRobot's recorder for real-world data collection
 
 ## Context
-TylerVLA's `collect_demos.py` is MuJoCo-only — it renders a simulated gripper camera and records via viewer sliders. It cannot talk to real hardware. For real-robot data collection on the SO-ARM-101, we need a different approach.
+TylerVLA's `simulation/collect_demos.py` is MuJoCo-only — it renders a simulated gripper camera and records via viewer sliders. It cannot talk to real hardware. For real-robot data collection on the SO-ARM-101, we need a different approach.
 
 Two options:
 1. Write a custom data collection script using LeRobot's `SO101Follower` Python API directly
@@ -13,7 +13,7 @@ Use LeRobot's `lerobot.record` + a conversion script.
 ## Why
 - LeRobot already handles camera sync, motor reading, and leader-follower teleoperation — reimplementing this is unnecessary work
 - Data is stored locally at `~/.cache/huggingface/lerobot/<repo_id>/` with no HuggingFace data upload required (just don't run `push_to_hub`)
-- Joint values are already in the same normalized space inference.py uses (`SO101FollowerConfig(use_degrees=False)` → -100..+100 for body joints, 0..100 for gripper)
+- Joint values are already in the same normalized space `real_robot/inference.py` uses (`SO101FollowerConfig(use_degrees=False)` → -100..+100 for body joints, 0..100 for gripper)
 
 ## Data format: LeRobot vs TylerVLA
 
@@ -45,7 +45,7 @@ demos/merged.json   # {"text": ["command", "command", ...]}  length N
 4. Save as `.npz` + `.json`
 
 ## Normalization chain
-LeRobot normalized joints (-100..+100) → `model/train.py` further normalizes (subtract mean, divide by std) → model predicts in normalized space → `inference.py` denormalizes (`pred * std + mean`) back to LeRobot space → `send_action()` accepts LeRobot normalized values.
+LeRobot normalized joints (-100..+100) → `model/train.py` further normalizes (subtract mean, divide by std) → model predicts in normalized space → `real_robot/inference.py` denormalizes (`pred * std + mean`) back to LeRobot space → `send_action()` accepts LeRobot normalized values.
 
 No additional conversion needed between collection and inference.
 
