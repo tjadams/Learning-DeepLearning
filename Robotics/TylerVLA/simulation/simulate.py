@@ -1,3 +1,13 @@
+"""MuJoCo simulation environment for TylerVLA.
+
+Builds a tabletop pick-and-place scene (ball + bowl) with the SO-ARM-101 robot.
+Supports manual viewing and running a trained policy in the loop.
+
+Usage:
+    mjpython simulation/simulate.py            # manual viewer
+    mjpython simulation/simulate.py --policy   # run trained policy in sim
+"""
+
 import argparse
 import os
 import tempfile

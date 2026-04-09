@@ -1,3 +1,13 @@
+"""Real-robot deployment for TylerVLA on SO-ARM-101 via LeRobot.
+
+Connects to the follower arm, runs the trained policy in a loop at 10 Hz,
+and sends joint position commands with exponential smoothing.
+
+Usage:
+    conda activate lerobot
+    python real_robot/inference.py
+"""
+
 import time
 
 import numpy as np
