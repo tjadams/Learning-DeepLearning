@@ -47,6 +47,7 @@ Only the MLP policy head trains; encoders are frozen.
 | `collect_demos.py` | MuJoCo teleoperation data collection |
 | `simulate.py` | Simulation environment (pick-and-place, ball→bowl); configure via constants at top |
 | `inference.py` | Policy loading + real-robot deployment stubs |
+| `tests/` | Unit and smoke tests |
 
 ## Data Format
 
@@ -63,4 +64,8 @@ Auto-detects CUDA → MPS → CPU.
 
 ## Testing
 
-No formal tests. Validation loss is logged during training. Smoke test: `mjpython simulate.py --policy`.
+```bash
+python -m pytest tests/
+```
+
+Validation loss is logged during training. Smoke test: `mjpython simulate.py --policy`.
