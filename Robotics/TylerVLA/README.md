@@ -1,3 +1,6 @@
+# Deprecated
+TylerVLA has been moved to a standalone repo: https://github.com/tjadams/TylerVLA
+
 # TylerVLA
 From-scratch/vibe-coded implementation of the simplest possible VLA that me (and ChatGPT/Claude) could think of. 
 
